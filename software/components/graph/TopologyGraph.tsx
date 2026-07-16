@@ -32,6 +32,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     isCompareMode,
     compareResultsPayload,
     selectedCompareMethodView,
+    showAllConflicts,
   } = useSimStore();
 
   const activeResult = React.useMemo(() => {
@@ -181,6 +182,17 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
             'background-color': '#f1f5f9', // Keep original grey
           },
         },
+        // ----- Congested node (overlaps) -----
+        {
+          selector: 'node.congested',
+          style: {
+            'border-color': '#d62728', // Red border for conflict warning
+            'border-width': 3,
+            'background-color': '#ffedd5', // Light orange background for warning
+            'color': '#ea580c', // Dark orange text for label
+            'font-weight': 'bold',
+          },
+        },
         // ----- Highlighted node (route - Gateway) -----
         {
           selector: 'node[type="gateway"].highlighted',
@@ -277,15 +289,88 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphData]);
 
-  // ----- Highlight active route when selectedSensor changes -----
+  // ----- Highlight active route when selectedSensor or showAllConflicts changes -----
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
 
-    // Reset all classes
-    cy.elements().removeClass('highlighted dimmed');
+    // Reset all classes and labels
+    cy.elements().removeClass('highlighted dimmed congested');
+    cy.edges().removeStyle('line-color');
+    cy.edges().removeStyle('width');
 
-    if (!selectedSensor || !activeResult) return;
+    cy.nodes().forEach((node) => {
+      const id = node.id();
+      const nodeType = node.data('type');
+      if (nodeType === 'gateway') {
+        node.style('label', `GW (N${id})`);
+      } else {
+        node.style('label', `N${id}`);
+      }
+    });
+
+    if (!activeResult) return;
+
+    if (showAllConflicts) {
+      // 1. Calculate path traffic
+      const nodeTraffic: Record<string, number> = {};
+      const edgeTraffic: Record<string, number> = {};
+
+      if (activeResult.paths) {
+        Object.entries(activeResult.paths).forEach(([sensorId, path]) => {
+          if (!path || path.length < 2) return;
+          
+          path.forEach((nodeId) => {
+            const nStr = String(nodeId);
+            nodeTraffic[nStr] = (nodeTraffic[nStr] || 0) + 1;
+          });
+
+          for (let i = 0; i < path.length - 1; i++) {
+            const u = String(path[i]);
+            const v = String(path[i + 1]);
+            const edgeKey = [u, v].sort().join('-');
+            edgeTraffic[edgeKey] = (edgeTraffic[edgeKey] || 0) + 1;
+          }
+        });
+      }
+
+      // 2. Color congested nodes (nodeTraffic > 1) and label them
+      cy.nodes().forEach((node) => {
+        const id = node.id();
+        const traffic = nodeTraffic[id] || 0;
+        const nodeType = node.data('type');
+
+        if (traffic > 0 && nodeType !== 'gateway') {
+          node.style('label', `N${id} [${traffic}]`);
+          if (traffic > 1) {
+            node.addClass('congested');
+          }
+        }
+      });
+
+      // 3. Highlight active edges and size them proportionally
+      cy.edges().addClass('dimmed');
+      cy.edges().forEach((edge) => {
+        const s = edge.data('source');
+        const t = edge.data('target');
+        const edgeKey = [s, t].sort().join('-');
+        const traffic = edgeTraffic[edgeKey] || 0;
+
+        if (traffic > 0) {
+          edge.addClass('highlighted').removeClass('dimmed');
+          edge.style('width', 1.8 + traffic * 1.5);
+          if (traffic > 1) {
+            edge.style('line-color', '#ea580c'); // Congestion color
+          } else {
+            edge.style('line-color', '#1f77b4'); // Normal route blue
+          }
+        }
+      });
+
+      return;
+    }
+
+    if (!selectedSensor) return;
 
     const path = activeResult.paths[selectedSensor];
     if (!path || path.length < 2) return;
@@ -298,20 +383,20 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     });
 
     for (let i = 0; i < path.length - 1; i++) {
-      const u = path[i];
-      const v = path[i + 1];
+      const u = String(path[i]);
+      const v = String(path[i + 1]);
       cy.edges().filter((e) => {
         const s = e.data('source');
         const t = e.data('target');
         return (s === u && t === v) || (s === v && t === u);
       }).addClass('highlighted').removeClass('dimmed');
     }
-  }, [selectedSensor, activeResult]);
+  }, [selectedSensor, activeResult, showAllConflicts]);
 
   // ----- Animate active route lines (moving flow effect) -----
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy || !selectedSensor || !activeResult) return;
+    if (!cy || (!selectedSensor && !showAllConflicts) || !activeResult) return;
 
     let animId: number;
     let offset = 0;
@@ -332,7 +417,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
         cyRef.current.edges().removeStyle('line-dash-offset');
       }
     };
-  }, [selectedSensor, activeResult, graphData]);
+  }, [selectedSensor, activeResult, graphData, showAllConflicts]);
 
   return (
     <div className={`relative w-full ${isCompareMode ? 'h-[460px]' : 'h-[545px]'} border border-slate-300 rounded overflow-hidden shadow-sm`}>
@@ -353,10 +438,18 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
           <span className="w-3.5 h-3.5 bg-[#e2e8f0] border border-[#cbd5e1] rounded-full inline-block" />
           <span className="text-slate-500 font-medium">Nodo intermedio (Círculo Gris)</span>
         </div>
-        {selectedSensor && (
+        {showAllConflicts && (
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 bg-[#ffedd5] border border-[#d62728] rounded-full inline-block" />
+            <span className="text-slate-700 font-medium">Nodo Solapado (Overlaps &gt; 1)</span>
+          </div>
+        )}
+        {(selectedSensor || showAllConflicts) && (
           <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
             <span className="w-5 h-1 border-t-2 border-dashed border-[#0056b3] inline-block animate-pulse" />
-            <span className="text-[#0056b3] font-bold">Flujo activo: N{selectedSensor}</span>
+            <span className="text-[#0056b3] font-bold">
+              {showAllConflicts ? 'Todos los flujos activos' : `Flujo activo: N${selectedSensor}`}
+            </span>
           </div>
         )}
       </div>

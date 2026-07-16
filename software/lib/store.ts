@@ -51,6 +51,8 @@ interface SimStore {
   setCompareResultsPayload: (payload: { method_a: SimResult; method_b: SimResult } | null) => void;
   selectedCompareMethodView: 'A' | 'B';
   setSelectedCompareMethodView: (val: 'A' | 'B') => void;
+  showAllConflicts: boolean;
+  setShowAllConflicts: (show: boolean) => void;
 }
 
 const defaultParams: SimParameters = {
@@ -136,4 +138,6 @@ export const useSimStore = create<SimStore>((set) => ({
   setCompareResultsPayload: (compareResultsPayload) => set({ compareResultsPayload }),
   selectedCompareMethodView: 'A',
   setSelectedCompareMethodView: (selectedCompareMethodView) => set({ selectedCompareMethodView }),
+  showAllConflicts: false,
+  setShowAllConflicts: (showAllConflicts) => set({ showAllConflicts }),
 }));

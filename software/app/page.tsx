@@ -38,7 +38,9 @@ export default function Home() {
     setCompareMethodsSelected,
     compareResultsPayload,
     setCompareResultsPayload,
-    setSelectedCompareMethodView
+    setSelectedCompareMethodView,
+    showAllConflicts,
+    setShowAllConflicts
   } = useSimStore();
 
   const [activeTab, setActiveTab] = useState<'network' | 'compare' | 'scheduler' | 'sweep' | 'history'>('network');
@@ -325,18 +327,34 @@ export default function Home() {
                 <TopologyGraph />
                 
                 {simStatus === 'completed' && activeResult && (
-                  <div className="absolute top-4 right-4 z-10 flex gap-1.5 font-mono">
-                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded border shadow-sm ${
-                      activeResult.isSchedulable 
-                        ? 'bg-[#2ca02c]/10 text-[#2ca02c] border border-[#2ca02c]/40' 
-                        : 'bg-[#d62728]/10 text-[#d62728] border border-[#d62728]/40'
-                    }`}>
-                      {activeResult.isSchedulable ? '✓ PROGRAMABLE' : '✗ NO PROGRAMABLE'}
-                    </span>
-                    <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-white border border-slate-300 text-slate-750 shadow-sm">
-                      SOLAPES: {activeResult.totalOverlaps}
-                    </span>
-                  </div>
+                  <>
+                    <div className="absolute top-4 left-4 z-10 font-mono">
+                      <button
+                        onClick={() => setShowAllConflicts(!showAllConflicts)}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded border shadow-sm transition-all flex items-center gap-1.5 active:scale-95 ${
+                          showAllConflicts
+                            ? 'bg-[#d62728] border-[#b91c1c] text-white font-bold'
+                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>⚡</span>
+                        {showAllConflicts ? 'VER FLUJO INDIVIDUAL' : 'VISUALIZAR CONFLICTOS'}
+                      </button>
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-10 flex gap-1.5 font-mono">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold rounded border shadow-sm ${
+                        activeResult.isSchedulable 
+                          ? 'bg-[#2ca02c]/10 text-[#2ca02c] border border-[#2ca02c]/40' 
+                          : 'bg-[#d62728]/10 text-[#d62728] border border-[#d62728]/40'
+                      }`}>
+                        {activeResult.isSchedulable ? '✓ PROGRAMABLE' : '✗ NO PROGRAMABLE'}
+                      </span>
+                      <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-white border border-slate-300 text-slate-750 shadow-sm">
+                        SOLAPES: {activeResult.totalOverlaps}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -379,11 +397,27 @@ export default function Home() {
                 <TopologyGraph />
                 
                 {simStatus === 'completed' && compareResultsPayload && (
-                  <div className="absolute top-4 right-4 z-10 flex gap-1.5 font-mono">
-                    <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-[#0056b3]/10 border border-[#0056b3]/45 text-[#0056b3] shadow-sm">
-                      COMPARACIÓN: {compareMethodsSelected.methodA} vs {compareMethodsSelected.methodB}
-                    </span>
-                  </div>
+                  <>
+                    <div className="absolute top-4 left-4 z-10 font-mono">
+                      <button
+                        onClick={() => setShowAllConflicts(!showAllConflicts)}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded border shadow-sm transition-all flex items-center gap-1.5 active:scale-95 ${
+                          showAllConflicts
+                            ? 'bg-[#d62728] border-[#b91c1c] text-white font-bold'
+                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>⚡</span>
+                        {showAllConflicts ? 'VER FLUJO INDIVIDUAL' : 'VISUALIZAR CONFLICTOS'}
+                      </button>
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-10 flex gap-1.5 font-mono">
+                      <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-[#0056b3]/10 border border-[#0056b3]/45 text-[#0056b3] shadow-sm">
+                        COMPARACIÓN: {compareMethodsSelected.methodA} vs {compareMethodsSelected.methodB}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
 
