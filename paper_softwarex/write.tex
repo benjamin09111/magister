@@ -1,0 +1,240 @@
+%% ============================================================
+%%  SOFTWAREX TEMPLATE - CLEAN DRAFT VERSION FOR WRITING
+%%  Recommended for authoring/review. Switch to final layout later.
+%% ============================================================
+
+\documentclass[preprint,12pt]{elsarticle}
+
+%% --- Packages ------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{microtype}
+\usepackage[margin=2.5cm]{geometry}
+
+%% --- Hyperref -----------------------------------------------
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+  pdfauthor={TODO: Authors},
+  pdftitle={TODO: Software title / article title}
+}
+
+%% --- Listings -----------------------------------------------
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  frame=single,
+  inputencoding=utf8,
+  extendedchars=true,
+  showstringspaces=false,
+  keepspaces=true,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ü}{{\"u}}1 {Ü}{{\"U}}1
+}
+
+%% --- Bibliography style -------------------------------------
+\bibliographystyle{elsarticle-num}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{TODO: Software title / article title}
+
+\author[aff1]{TODO: Author One\corref{cor1}}
+\ead{TODO: author.one@institution.edu}
+
+\author[aff2]{TODO: Author Two}
+\ead{TODO: author.two@institution.edu}
+
+\cortext[cor1]{Corresponding author.}
+
+\affiliation[aff1]{
+  organization={TODO: Department, University/Institution},
+  addressline={TODO: Address},
+  city={TODO: City},
+  postcode={TODO: Postal code},
+  country={TODO: Country}
+}
+
+\affiliation[aff2]{
+  organization={TODO: Department, University/Institution},
+  addressline={TODO: Address},
+  city={TODO: City},
+  postcode={TODO: Postal code},
+  country={TODO: Country}
+}
+
+\begin{abstract}
+TODO: Write the abstract here. Maximum 250 words. Briefly describe the software,
+its purpose, the problem it solves, its main functionalities, key results, and
+the main contribution to the research community.
+\end{abstract}
+
+\begin{keyword}
+TODO keyword 1 \sep
+TODO keyword 2 \sep
+TODO keyword 3 \sep
+TODO keyword 4
+\end{keyword}
+
+\end{frontmatter}
+
+\section*{Code metadata}
+\label{sec:metadata}
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Code metadata required by SoftwareX.}
+\label{tab:metadata}
+\begin{tabular}{p{0.08\linewidth}p{0.44\linewidth}p{0.40\linewidth}}
+\toprule
+\textbf{Nr.} & \textbf{Code metadata description} & \textbf{Metadata} \\
+\midrule
+C1 & Current code version & TODO: v1.0.0 \\
+C2 & Permanent link to code/repository used for this code version & TODO: \url{https://github.com/user/repository} \\
+C3 & Permanent link to reproducible capsule & TODO: \url{https://} or N/A \\
+C4 & Legal Code License & TODO: MIT / Apache-2.0 / GPL-3.0 / other \\
+C5 & Code versioning system used & TODO: git \\
+C6 & Software code languages, tools, and services used & TODO: Python, R, C++, etc. \\
+C7 & Compilation requirements, operating environments and dependencies & TODO: Python $\geq$ 3.9; dependencies: numpy, scipy, etc. \\
+C8 & Link to developer documentation/manual & TODO: \url{https://} or N/A \\
+C9 & Support email for questions & TODO: author.one@institution.edu \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Motivation and significance}
+\label{sec:motivation}
+
+TODO: Explain why the software was developed. Describe the scientific or
+computational problem it solves, why existing tools are insufficient, and how
+the software fits into the research area.
+
+\section{Software description}
+\label{sec:description}
+
+TODO: Provide a general description of the software, its scope, intended users,
+main inputs, outputs, and expected usage context.
+
+\subsection{Software architecture}
+\label{sec:architecture}
+
+TODO: Describe the software architecture. You may include a component diagram
+as shown in Fig.~\ref{fig:architecture}.
+
+\begin{figure}[ht]
+  \centering
+  %% Replace with your real figure:
+  %% \includegraphics[width=0.82\linewidth]{figures/Figure_1.pdf}
+  \fbox{\rule{0pt}{5cm}\rule{0.82\linewidth}{0pt}}
+  \caption{TODO: Brief title of the figure. Provide a detailed explanation of
+the architecture diagram, including all symbols and abbreviations used.}
+  \label{fig:architecture}
+\end{figure}
+
+\subsection{Software functionalities}
+\label{sec:functionalities}
+
+TODO: Describe the main functionalities of the software.
+
+\subsubsection{Functionality 1}
+\label{sec:functionality1}
+
+TODO: Describe functionality 1.
+
+\subsubsection{Functionality 2}
+\label{sec:functionality2}
+
+TODO: Describe functionality 2.
+
+\section{Illustrative examples}
+\label{sec:examples}
+
+TODO: Present one or more concrete use cases demonstrating the software. Include
+code snippets, results, figures, or tables as appropriate.
+
+\begin{table}[ht]
+  \caption{TODO: Table title.}
+  \label{tab:results}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Parameter} & \textbf{Value A} & \textbf{Value B} \\
+    \midrule
+    TODO row 1 & 0.00 & 0.00 \\
+    TODO row 2 & 0.00 & 0.00 \\
+    TODO row 3 & 0.00 & 0.00 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{equation}
+  \label{eq:example}
+  f(x) = \int_{-\infty}^{+\infty} \hat{f}(\xi)\, \exp(2\pi i \xi x)\, d\xi
+\end{equation}
+
+Equation~(\ref{eq:example}) shows TODO: explain what the equation represents.
+
+\begin{lstlisting}[language=Python,
+caption={TODO: Description of the code snippet.},
+label={lst:example}]
+# TODO: replace with your example code
+import mymodule
+
+result = mymodule.function(param1=value1,
+                           param2=value2)
+print(result)
+\end{lstlisting}
+
+\section{Impact}
+\label{sec:impact}
+
+TODO: Describe the expected or observed impact of the software on the scientific
+community or practical applications. Explain who benefits from it and what new
+research or applications it enables.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+TODO: Summarize the main characteristics of the software and its contributions.
+You may also mention limitations and future work.
+
+\section*{CRediT authorship contribution statement}
+
+\textbf{TODO: Author One:} Conceptualization, Software, Writing -- original draft.\\
+\textbf{TODO: Author Two:} Methodology, Validation, Writing -- review \& editing.
+
+\section*{Declaration of competing interest}
+
+The authors declare that they have no known competing financial interests or
+personal relationships that could have appeared to influence the work reported
+in this paper.
+
+\section*{Data availability}
+
+The data that support the findings of this study are openly available in
+TODO: repository name at \url{TODO: https://doi.org/xxxxx}.
+
+\section*{Acknowledgements}
+
+TODO: Acknowledge people who helped with language editing, writing, review, or
+other support. If applicable, mention funding sources.
+
+\bibliography{referencias}
+
+\end{document}
