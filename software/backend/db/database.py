@@ -30,6 +30,20 @@ async def init_db():
                 results TEXT NOT NULL
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS topologies (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                N INTEGER NOT NULL,
+                lambda_val REAL NOT NULL,
+                sensors_count INTEGER NOT NULL,
+                gateway INTEGER NOT NULL,
+                gateway_mode TEXT NOT NULL,
+                nodes TEXT NOT NULL,
+                edges TEXT NOT NULL
+            )
+        """)
         await db.commit()
 
 async def add_history_item(item: Dict[str, Any]):
@@ -128,4 +142,55 @@ async def delete_all_history():
     """
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM history")
+        await db.commit()
+
+async def add_saved_topology(item: Dict[str, Any]):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO topologies (
+                id, name, timestamp, N, lambda_val, sensors_count, 
+                gateway, gateway_mode, nodes, edges
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item["id"],
+                item["name"],
+                item["timestamp"],
+                item["N"],
+                item["lambda_val"],
+                item["sensors_count"],
+                item["gateway"],
+                item["gateway_mode"],
+                json.dumps(item["nodes"]),
+                json.dumps(item["edges"])
+            )
+        )
+        await db.commit()
+
+async def get_all_saved_topologies() -> List[Dict[str, Any]]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM topologies ORDER BY timestamp DESC") as cursor:
+            rows = await cursor.fetchall()
+            
+            topologies = []
+            for row in rows:
+                topologies.append({
+                    "id": row["id"],
+                    "name": row["name"],
+                    "timestamp": row["timestamp"],
+                    "N": row["N"],
+                    "lambda_val": row["lambda_val"],
+                    "sensors_count": row["sensors_count"],
+                    "gateway": row["gateway"],
+                    "gateway_mode": row["gateway_mode"],
+                    "nodes": json.loads(row["nodes"]),
+                    "edges": json.loads(row["edges"])
+                })
+            return topologies
+
+async def delete_saved_topology(topo_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM topologies WHERE id = ?", (topo_id,))
         await db.commit()

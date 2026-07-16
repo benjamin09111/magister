@@ -33,7 +33,10 @@ from backend.db.database import (
     add_history_item,
     get_all_history,
     delete_history_item,
-    delete_all_history
+    delete_all_history,
+    add_saved_topology,
+    get_all_saved_topologies,
+    delete_saved_topology
 )
 from backend.models.simulation import TopoConfigModel, SimConfigModel, SweepConfigModel, CompareConfigModel
 
@@ -78,8 +81,12 @@ async def generate_topology(config: TopoConfigModel):
             # Default to maximum degree node
             gateway = select_gateway_by_centrality(G, method='degree')
             
-        # Select sensors count (default to ~25% of nodes or 8 by default)
-        sensors_count = max(2, int(config.N * 0.25))
+        # Select sensors count (use client parameter if provided, otherwise default to 25% of nodes)
+        if config.sensors_count is not None:
+            sensors_count = max(2, min(config.N - 1, config.sensors_count))
+        else:
+            sensors_count = max(2, int(config.N * 0.25))
+            
         sensors = select_sensors(config.N, sensors_count, gateway)
         
         # Format nodes and edges for Cytoscape.js
@@ -162,43 +169,41 @@ async def run_simulation(config: SimConfigModel):
         if method == 'SP':
             paths = sp_paths
         elif method == 'MO':
-            # Use fixed optimal Phi value (0.0265) as requested
-            psi = 0.0265
+            psi = config.mo_psi if config.mo_psi is not None else 0.0265
             paths = run_minimal_overlap_routing(G, sp_paths, sensors, gateway, psi, config.k_max)
         elif method == 'MO_ACO':
-            # Use fixed optimal Phi value (0.0265) as requested
-            psi = 0.0265
+            psi = config.mo_psi if config.mo_psi is not None else 0.0265
             mo_paths = run_minimal_overlap_routing(G, sp_paths, sensors, gateway, psi, config.k_max)
             
             aco_cfg = {
                 "num_candidates_per_flow": 8,
                 "max_candidate_attempts": 40,
-                "aco_num_ants": 20,
-                "aco_num_iterations": 35,
-                "aco_alpha": 1.0,
-                "aco_beta": 2.5,
-                "aco_rho": 0.10,
-                "aco_Q": 2.0,
-                "aco_hops_penalty": 0.001,
-                "aco_partial_overlap_penalty": 25.0
+                "aco_num_ants": config.aco_num_ants if config.aco_num_ants is not None else 20,
+                "aco_num_iterations": config.aco_num_iterations if config.aco_num_iterations is not None else 35,
+                "aco_alpha": config.aco_alpha if config.aco_alpha is not None else 1.0,
+                "aco_beta": config.aco_beta if config.aco_beta is not None else 2.5,
+                "aco_rho": config.aco_rho if config.aco_rho is not None else 0.10,
+                "aco_Q": config.aco_Q if config.aco_Q is not None else 2.0,
+                "aco_hops_penalty": config.aco_hops_penalty if config.aco_hops_penalty is not None else 0.001,
+                "aco_partial_overlap_penalty": config.aco_partial_overlap_penalty if config.aco_partial_overlap_penalty is not None else 25.0
             }
             paths = run_moaco_routing(G, mo_paths, sensors, gateway, aco_cfg)
         elif method == 'QLearning':
             ql_cfg = {
-                "ql_alpha": 0.1,
-                "ql_gamma": 0.9,
-                "ql_epsilon_start": 1.0,
-                "ql_epsilon_min": 0.05,
-                "ql_num_episodes": 400
+                "ql_alpha": config.ql_alpha if config.ql_alpha is not None else 0.1,
+                "ql_gamma": config.ql_gamma if config.ql_gamma is not None else 0.9,
+                "ql_epsilon_start": config.ql_epsilon_start if config.ql_epsilon_start is not None else 1.0,
+                "ql_epsilon_min": config.ql_epsilon_min if config.ql_epsilon_min is not None else 0.05,
+                "ql_num_episodes": config.ql_num_episodes if config.ql_num_episodes is not None else 400
             }
             paths = run_qlearning_routing(G, sensors, gateway, ql_cfg)
         elif method == 'SARSA':
             sar_cfg = {
-                "sar_alpha": 0.1,
-                "sar_gamma": 0.9,
-                "sar_epsilon_start": 1.0,
-                "sar_epsilon_min": 0.05,
-                "sar_num_episodes": 400
+                "sar_alpha": config.sar_alpha if config.sar_alpha is not None else 0.1,
+                "sar_gamma": config.sar_gamma if config.sar_gamma is not None else 0.9,
+                "sar_epsilon_start": config.sar_epsilon_start if config.sar_epsilon_start is not None else 1.0,
+                "sar_epsilon_min": config.sar_epsilon_min if config.sar_epsilon_min is not None else 0.05,
+                "sar_num_episodes": config.sar_num_episodes if config.sar_num_episodes is not None else 400
             }
             paths = run_sarsa_routing(G, sensors, gateway, sar_cfg)
         else:
@@ -704,40 +709,40 @@ async def run_comparison_simulation(config: CompareConfigModel):
             if method_name == 'SP':
                 paths = sp_paths
             elif method_name == 'MO':
-                psi = 0.0265 # Constant Optimal Phi
+                psi = config.mo_psi if config.mo_psi is not None else 0.0265
                 paths = run_minimal_overlap_routing(G, sp_paths, sensors, gateway, psi, config.k_max)
             elif method_name == 'MO_ACO':
-                psi = 0.0265 # Constant Optimal Phi
+                psi = config.mo_psi if config.mo_psi is not None else 0.0265
                 mo_paths = run_minimal_overlap_routing(G, sp_paths, sensors, gateway, psi, config.k_max)
                 aco_cfg = {
                     "num_candidates_per_flow": 8,
                     "max_candidate_attempts": 40,
-                    "aco_num_ants": 20,
-                    "aco_num_iterations": 35,
-                    "aco_alpha": 1.0,
-                    "aco_beta": 2.5,
-                    "aco_rho": 0.10,
-                    "aco_Q": 2.0,
-                    "aco_hops_penalty": 0.001,
-                    "aco_partial_overlap_penalty": 25.0
+                    "aco_num_ants": config.aco_num_ants if config.aco_num_ants is not None else 20,
+                    "aco_num_iterations": config.aco_num_iterations if config.aco_num_iterations is not None else 35,
+                    "aco_alpha": config.aco_alpha if config.aco_alpha is not None else 1.0,
+                    "aco_beta": config.aco_beta if config.aco_beta is not None else 2.5,
+                    "aco_rho": config.aco_rho if config.aco_rho is not None else 0.10,
+                    "aco_Q": config.aco_Q if config.aco_Q is not None else 2.0,
+                    "aco_hops_penalty": config.aco_hops_penalty if config.aco_hops_penalty is not None else 0.001,
+                    "aco_partial_overlap_penalty": config.aco_partial_overlap_penalty if config.aco_partial_overlap_penalty is not None else 25.0
                 }
                 paths = run_moaco_routing(G, mo_paths, sensors, gateway, aco_cfg)
             elif method_name == 'QLearning':
                 ql_cfg = {
-                    "ql_alpha": 0.1,
-                    "ql_gamma": 0.9,
-                    "ql_epsilon_start": 1.0,
-                    "ql_epsilon_min": 0.05,
-                    "ql_num_episodes": 400
+                    "ql_alpha": config.ql_alpha if config.ql_alpha is not None else 0.1,
+                    "ql_gamma": config.ql_gamma if config.ql_gamma is not None else 0.9,
+                    "ql_epsilon_start": config.ql_epsilon_start if config.ql_epsilon_start is not None else 1.0,
+                    "ql_epsilon_min": config.ql_epsilon_min if config.ql_epsilon_min is not None else 0.05,
+                    "ql_num_episodes": config.ql_num_episodes if config.ql_num_episodes is not None else 400
                 }
                 paths = run_qlearning_routing(G, sensors, gateway, ql_cfg)
             elif method_name == 'SARSA':
                 sar_cfg = {
-                    "sar_alpha": 0.1,
-                    "sar_gamma": 0.9,
-                    "sar_epsilon_start": 1.0,
-                    "sar_epsilon_min": 0.05,
-                    "sar_num_episodes": 400
+                    "sar_alpha": config.sar_alpha if config.sar_alpha is not None else 0.1,
+                    "sar_gamma": config.sar_gamma if config.sar_gamma is not None else 0.9,
+                    "sar_epsilon_start": config.sar_epsilon_start if config.sar_epsilon_start is not None else 1.0,
+                    "sar_epsilon_min": config.sar_epsilon_min if config.sar_epsilon_min is not None else 0.05,
+                    "sar_num_episodes": config.sar_num_episodes if config.sar_num_episodes is not None else 400
                 }
                 paths = run_sarsa_routing(G, sensors, gateway, sar_cfg)
             else:
@@ -848,6 +853,33 @@ async def delete_history(item_id: str):
 async def clear_history():
     try:
         await delete_all_history()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/topologies")
+async def get_topologies():
+    try:
+        return await get_all_saved_topologies()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/topologies")
+async def save_topology(item: Dict[str, Any]):
+    try:
+        if "id" not in item:
+            item["id"] = str(uuid.uuid4())
+        if "timestamp" not in item:
+            item["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        await add_saved_topology(item)
+        return {"status": "success", "id": item["id"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/topologies/{topo_id}")
+async def delete_saved_topo(topo_id: str):
+    try:
+        await delete_saved_topology(topo_id)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

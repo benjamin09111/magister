@@ -98,6 +98,26 @@ export interface SimParameters {
   conflict_pair_mode: 'paper_double' | 'single';
   gateway_mode: 'auto' | 'manual';
   selected_gateway: number | null;
+  // Routing parameter overrides
+  mo_psi?: number;
+  aco_alpha?: number;
+  aco_beta?: number;
+  aco_rho?: number;
+  aco_Q?: number;
+  aco_num_ants?: number;
+  aco_num_iterations?: number;
+  aco_hops_penalty?: number;
+  aco_partial_overlap_penalty?: number;
+  ql_alpha?: number;
+  ql_gamma?: number;
+  ql_epsilon_start?: number;
+  ql_epsilon_min?: number;
+  ql_num_episodes?: number;
+  sar_alpha?: number;
+  sar_gamma?: number;
+  sar_epsilon_start?: number;
+  sar_epsilon_min?: number;
+  sar_num_episodes?: number;
 }
 
 export interface SweepParameters {

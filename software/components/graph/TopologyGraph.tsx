@@ -5,6 +5,7 @@ import cytoscape from 'cytoscape';
 // @ts-ignore
 import cola from 'cytoscape-cola';
 import { useSimStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 // Register cola layout once
 if (typeof window !== 'undefined') {
@@ -24,6 +25,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
 
   const {
     graphData,
+    setGraphData,
     params,
     updateParams,
     selectedSensor,
@@ -33,6 +35,8 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     compareResultsPayload,
     selectedCompareMethodView,
     showAllConflicts,
+    isSelectingGateway,
+    setIsSelectingGateway,
   } = useSimStore();
 
   const activeResult = React.useMemo(() => {
@@ -43,6 +47,11 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     }
     return storeActiveResult;
   }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, storeActiveResult]);
+
+  const stateRef = useRef({ params, isSelectingGateway, graphData, selectedSensor, onNodeSelect, activeResult });
+  useEffect(() => {
+    stateRef.current = { params, isSelectingGateway, graphData, selectedSensor, onNodeSelect, activeResult };
+  }, [params, isSelectingGateway, graphData, selectedSensor, onNodeSelect, activeResult]);
 
   // Build / rebuild graph whenever graphData changes
   useEffect(() => {
@@ -66,7 +75,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     const elements: cytoscape.ElementDefinition[] = [];
 
     graphData.nodes.forEach((node) => {
-      elements.push({
+      const nodeDef: cytoscape.ElementDefinition = {
         group: 'nodes',
         data: {
           id: node.id,
@@ -75,7 +84,11 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
           degree: node.degree ?? 0,
           betweenness: node.betweenness ?? 0,
         },
-      });
+      };
+      if (node.x !== undefined && node.y !== undefined) {
+        nodeDef.position = { x: node.x, y: node.y };
+      }
+      elements.push(nodeDef);
     });
 
     graphData.edges.forEach((edge) => {
@@ -93,6 +106,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     const cy = cytoscape({
       container: containerRef.current,
       elements,
+      layout: { name: 'null' },
       // ────────────── Stylesheet (no bypasses) ──────────────
       style: [
         // ----- Default node -----
@@ -236,11 +250,14 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
 
     cyRef.current = cy;
 
+    // Check if we have pre-defined node positions (e.g. from manual gateway change)
+    const hasPositions = graphData.nodes.some(n => n.x !== undefined && n.y !== undefined);
+
     // Run layout separately
     const layout = cy.layout({
       name: 'cola',
-      animate: true,
-      randomize: true,
+      animate: !hasPositions,
+      randomize: !hasPositions,
       maxSimulationTime: 2000,
       nodeSpacing: 40,
       edgeLength: 90,
@@ -252,6 +269,14 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     // ----- Canvas/Node tap handler -----
     cy.on('tap', (evt) => {
       const target = evt.target;
+      const { 
+        params: currentParams, 
+        isSelectingGateway: currentSelecting, 
+        graphData: currentGraphData, 
+        selectedSensor: currentSelectedSensor,
+        onNodeSelect: currentOnNodeSelect,
+        activeResult: currentActiveResult
+      } = stateRef.current;
 
       if (target === cy) {
         // Tapped on the background!
@@ -263,16 +288,58 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
         const nodeId = target.id();
         const nodeType = target.data('type');
 
-        if (params.gateway_mode === 'manual') {
-          updateParams({ selected_gateway: parseInt(nodeId) });
-        } else if (nodeType === 'sensor') {
-          setSelectedSensor(selectedSensor === nodeId ? null : nodeId);
-        } else {
-          // Tapped an intermediate node or gateway
-          setSelectedSensor(null);
+        if (currentParams.gateway_mode === 'manual' && currentSelecting) {
+          const newGatewayId = parseInt(nodeId);
+          updateParams({ selected_gateway: newGatewayId });
+          setIsSelectingGateway(false);
+          
+          if (currentGraphData) {
+            // Get current positions of all nodes in Cytoscape
+            let positions: { id: string; x: number; y: number }[] = [];
+            if (cyRef.current) {
+              positions = cyRef.current.nodes().map(node => ({
+                id: node.id(),
+                x: node.position('x'),
+                y: node.position('y')
+              }));
+            }
+
+            const targetNode = currentGraphData.nodes.find(n => n.id === nodeId);
+            const isTargetSensor = targetNode?.type === 'sensor';
+
+            const updatedNodes = currentGraphData.nodes.map(node => {
+              const pos = positions.find(p => p.id === node.id);
+              let newType = node.type;
+              
+              if (node.id === nodeId) {
+                newType = 'gateway';
+              } else if (node.type === 'gateway') {
+                // If the new gateway was a sensor, promote the old gateway to a sensor to keep count
+                newType = isTargetSensor ? 'sensor' : 'normal';
+              }
+              
+              return {
+                ...node,
+                type: newType,
+                x: pos ? pos.x : undefined,
+                y: pos ? pos.y : undefined
+              };
+            });
+            
+            setGraphData({ ...currentGraphData, nodes: updatedNodes });
+            toast.success(`Nodo N${nodeId} establecido como Gateway`);
+          }
+        } else if (currentActiveResult) {
+          // Only allow node click selection of sensors to highlight paths if simulation results exist
+          if (nodeType === 'sensor') {
+            setSelectedSensor(currentSelectedSensor === nodeId ? null : nodeId);
+          } else {
+            // Tapped an intermediate node or gateway
+            setSelectedSensor(null);
+          }
         }
 
-        if (onNodeSelect) onNodeSelect(nodeId);
+        if (currentOnNodeSelect) currentOnNodeSelect(nodeId);
       }
     });
 
@@ -292,121 +359,143 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
   // ----- Highlight active route when selectedSensor or showAllConflicts changes -----
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy) return;
+    if (!cy || cy.destroyed()) return;
 
-    // Reset all classes and labels
-    cy.elements().removeClass('highlighted dimmed congested');
-    cy.edges().removeStyle('line-color');
-    cy.edges().removeStyle('width');
+    try {
+      // Reset all classes and labels
+      cy.elements().removeClass('highlighted dimmed congested');
+      cy.edges().removeStyle('line-color');
+      cy.edges().removeStyle('width');
 
-    cy.nodes().forEach((node) => {
-      const id = node.id();
-      const nodeType = node.data('type');
-      if (nodeType === 'gateway') {
-        node.style('label', `GW (N${id})`);
-      } else {
-        node.style('label', `N${id}`);
-      }
-    });
-
-    if (!activeResult) return;
-
-    if (showAllConflicts) {
-      // 1. Calculate path traffic
-      const nodeTraffic: Record<string, number> = {};
-      const edgeTraffic: Record<string, number> = {};
-
-      if (activeResult.paths) {
-        Object.entries(activeResult.paths).forEach(([sensorId, path]) => {
-          if (!path || path.length < 2) return;
-          
-          path.forEach((nodeId) => {
-            const nStr = String(nodeId);
-            nodeTraffic[nStr] = (nodeTraffic[nStr] || 0) + 1;
-          });
-
-          for (let i = 0; i < path.length - 1; i++) {
-            const u = String(path[i]);
-            const v = String(path[i + 1]);
-            const edgeKey = [u, v].sort().join('-');
-            edgeTraffic[edgeKey] = (edgeTraffic[edgeKey] || 0) + 1;
-          }
-        });
-      }
-
-      // 2. Color congested nodes (nodeTraffic > 1) and label them
       cy.nodes().forEach((node) => {
-        const id = node.id();
-        const traffic = nodeTraffic[id] || 0;
-        const nodeType = node.data('type');
-
-        if (traffic > 0 && nodeType !== 'gateway') {
-          node.style('label', `N${id} [${traffic}]`);
-          if (traffic > 1) {
-            node.addClass('congested');
-          }
-        }
-      });
-
-      // 3. Highlight active edges and size them proportionally
-      cy.edges().addClass('dimmed');
-      cy.edges().forEach((edge) => {
-        const s = edge.data('source');
-        const t = edge.data('target');
-        const edgeKey = [s, t].sort().join('-');
-        const traffic = edgeTraffic[edgeKey] || 0;
-
-        if (traffic > 0) {
-          edge.addClass('highlighted').removeClass('dimmed');
-          edge.style('width', 1.8 + traffic * 1.5);
-          if (traffic > 1) {
-            edge.style('line-color', '#ea580c'); // Congestion color
+        if (cy.destroyed()) return;
+        try {
+          const id = node.id();
+          const nodeType = node.data('type');
+          if (nodeType === 'gateway') {
+            node.style('label', `GW (N${id})`);
           } else {
-            edge.style('line-color', '#1f77b4'); // Normal route blue
+            node.style('label', `N${id}`);
           }
-        }
+        } catch (_) {}
       });
 
-      return;
-    }
+      if (!activeResult) return;
 
-    if (!selectedSensor) return;
+      if (showAllConflicts) {
+        // 1. Calculate path traffic
+        const nodeTraffic: Record<string, number> = {};
+        const edgeTraffic: Record<string, number> = {};
 
-    const path = activeResult.paths[selectedSensor];
-    if (!path || path.length < 2) return;
+        if (activeResult.paths) {
+          Object.entries(activeResult.paths).forEach(([sensorId, path]) => {
+            if (!path || path.length < 2) return;
+            
+            path.forEach((nodeId) => {
+              const nStr = String(nodeId);
+              nodeTraffic[nStr] = (nodeTraffic[nStr] || 0) + 1;
+            });
 
-    // Dim everything first, then highlight the route
-    cy.edges().addClass('dimmed');
+            for (let i = 0; i < path.length - 1; i++) {
+              const u = String(path[i]);
+              const v = String(path[i + 1]);
+              const edgeKey = [u, v].sort().join('-');
+              edgeTraffic[edgeKey] = (edgeTraffic[edgeKey] || 0) + 1;
+            }
+          });
+        }
 
-    path.forEach((nodeId) => {
-      cy.getElementById(nodeId).addClass('highlighted').removeClass('dimmed');
-    });
+        // 2. Color congested nodes (nodeTraffic > 1) and label them
+        cy.nodes().forEach((node) => {
+          if (cy.destroyed()) return;
+          try {
+            const id = node.id();
+            const traffic = nodeTraffic[id] || 0;
+            const nodeType = node.data('type');
 
-    for (let i = 0; i < path.length - 1; i++) {
-      const u = String(path[i]);
-      const v = String(path[i + 1]);
-      cy.edges().filter((e) => {
-        const s = e.data('source');
-        const t = e.data('target');
-        return (s === u && t === v) || (s === v && t === u);
-      }).addClass('highlighted').removeClass('dimmed');
-    }
+            if (traffic > 0 && nodeType !== 'gateway') {
+              node.style('label', `N${id} [${traffic}]`);
+              if (traffic > 1) {
+                node.addClass('congested');
+              }
+            }
+          } catch (_) {}
+        });
+
+        // 3. Highlight active edges and size them proportionally
+        cy.edges().addClass('dimmed');
+        cy.edges().forEach((edge) => {
+          if (cy.destroyed()) return;
+          try {
+            const s = edge.data('source');
+            const t = edge.data('target');
+            const edgeKey = [s, t].sort().join('-');
+            const traffic = edgeTraffic[edgeKey] || 0;
+
+            if (traffic > 0) {
+              edge.addClass('highlighted').removeClass('dimmed');
+              edge.style('width', 1.8 + traffic * 1.5);
+              if (traffic > 1) {
+                edge.style('line-color', '#d62728'); // Congestion color
+              } else {
+                edge.style('line-color', '#1f77b4'); // Normal route blue
+              }
+            }
+          } catch (_) {}
+        });
+
+        return;
+      }
+
+      if (!selectedSensor) return;
+
+      const path = activeResult.paths[selectedSensor];
+      if (!path || path.length < 2) return;
+
+      // Dim everything first, then highlight the route
+      cy.edges().addClass('dimmed');
+
+      path.forEach((nodeId) => {
+        if (cy.destroyed()) return;
+        try {
+          cy.getElementById(nodeId).addClass('highlighted').removeClass('dimmed');
+        } catch (_) {}
+      });
+
+      for (let i = 0; i < path.length - 1; i++) {
+        if (cy.destroyed()) return;
+        try {
+          const u = String(path[i]);
+          const v = String(path[i + 1]);
+          cy.edges().filter((e) => {
+            const s = e.data('source');
+            const t = e.data('target');
+            return (s === u && t === v) || (s === v && t === u);
+          }).addClass('highlighted').removeClass('dimmed');
+        } catch (_) {}
+      }
+    } catch (_) {}
   }, [selectedSensor, activeResult, showAllConflicts]);
 
   // ----- Animate active route lines (moving flow effect) -----
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy || (!selectedSensor && !showAllConflicts) || !activeResult) return;
+    if (!cy || cy.destroyed() || (!selectedSensor && !showAllConflicts) || !activeResult) return;
 
     let animId: number;
     let offset = 0;
 
     const animateFlow = () => {
-      if (cyRef.current) {
-        offset = (offset - 1.2) % 24; // moving offset
-        cyRef.current.edges('.highlighted').style('line-dash-offset', offset);
+      try {
+        const currentCy = cyRef.current;
+        if (currentCy && !currentCy.destroyed()) {
+          offset = (offset - 1.2) % 24; // moving offset
+          currentCy.edges('.highlighted').style('line-dash-offset', offset);
+          animId = requestAnimationFrame(animateFlow);
+        }
+      } catch (_) {
+        // Safe exit if cy was destroyed mid-tick
       }
-      animId = requestAnimationFrame(animateFlow);
     };
 
     animId = requestAnimationFrame(animateFlow);
@@ -414,13 +503,17 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
     return () => {
       cancelAnimationFrame(animId);
       if (cyRef.current) {
-        cyRef.current.edges().removeStyle('line-dash-offset');
+        try {
+          if (!cyRef.current.destroyed()) {
+            cyRef.current.edges().removeStyle('line-dash-offset');
+          }
+        } catch (_) {}
       }
     };
   }, [selectedSensor, activeResult, graphData, showAllConflicts]);
 
   return (
-    <div className={`relative w-full ${isCompareMode ? 'h-[460px]' : 'h-[545px]'} border border-slate-300 rounded overflow-hidden shadow-sm`}>
+    <div className={`relative w-full ${activeResult ? 'h-[400px]' : (isCompareMode ? 'h-[460px]' : 'h-[545px]')} border border-slate-300 rounded overflow-hidden shadow-sm`}>
       <div ref={containerRef} className="cytoscape-container absolute inset-0" />
 
       {/* Legend */}
@@ -454,12 +547,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
         )}
       </div>
 
-      {/* Gateway manual mode badge */}
-      {params.gateway_mode === 'manual' && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/40 text-yellow-800 font-semibold text-[11px] rounded z-10 shadow-sm backdrop-blur-xs">
-          Modo selección de Gateway — haz clic en cualquier nodo
-        </div>
-      )}
+
 
       {/* Empty state */}
       {!graphData && (

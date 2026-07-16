@@ -9,6 +9,7 @@ import { Trash2, RotateCcw, Eye } from 'lucide-react';
 export default function HistoryList() {
   const { history, setHistory, updateParams, setGraphData, setActiveResult, setSimStatus } = useSimStore();
   const [loading, setLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const loadHistory = async () => {
     setLoading(true);
@@ -32,8 +33,11 @@ export default function HistoryList() {
     }
   };
 
-  const handleClearAll = async () => {
-    if (!confirm('¿Estás seguro de que deseas vaciar el historial completo?')) return;
+  const handleClearAll = () => {
+    setShowConfirmModal(true);
+  };
+
+  const executeClearAll = async () => {
     try {
       await fetchApi('/history', { method: 'DELETE' });
       toast.success('Historial vaciado');
@@ -179,6 +183,51 @@ export default function HistoryList() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white border border-slate-350 max-w-sm w-full rounded shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 relative font-sans">
+            {/* Red alert strip */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#d62728]" />
+            
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <span>⚠️</span> Confirmar Acción
+              </h4>
+              <button 
+                onClick={() => setShowConfirmModal(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-5 text-xs text-slate-600 leading-normal">
+              ¿Estás seguro de que deseas vaciar el historial completo? Esta acción eliminará permanentemente todos los registros simulados de la base de datos SQLite y no se puede deshacer.
+            </div>
+            
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded border border-slate-350 bg-white hover:bg-slate-100 text-slate-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  await executeClearAll();
+                }}
+                className="px-3 py-1.5 text-xs font-bold rounded bg-[#d62728] hover:bg-[#b91c1c] text-white transition-colors shadow-sm"
+              >
+                Sí, vaciar historial
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

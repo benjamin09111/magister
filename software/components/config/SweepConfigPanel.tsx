@@ -16,8 +16,16 @@ export default function SweepConfigPanel() {
     setSweepResult 
   } = useSimStore();
 
+  const isNInvalid = isNaN(params.N) || params.N < 10 || params.N > 100;
+  const isSensorsInvalid = isNaN(params.sensorsCount) || params.sensorsCount < 2 || (!isNInvalid && params.sensorsCount >= params.N);
+
   const handleStartSweep = async () => {
     // Basic validation
+    if (isNInvalid || isSensorsInvalid) {
+      toast.error('La configuración base (Nodos o Emisores) es inválida. Por favor, corrígela en la pestaña de Topología.');
+      return;
+    }
+
     if (sweepParams.sweep_start >= sweepParams.sweep_end) {
       toast.error('El valor inicial debe ser menor al valor final.');
       return;
@@ -269,9 +277,9 @@ export default function SweepConfigPanel() {
         {/* Start Sweep Button */}
         <button
           onClick={handleStartSweep}
-          disabled={sweepStatus === 'running'}
+          disabled={sweepStatus === 'running' || isNInvalid || isSensorsInvalid}
           className={`w-full py-3 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
-            sweepStatus === 'running'
+            (sweepStatus === 'running' || isNInvalid || isSensorsInvalid)
               ? 'bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed'
               : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'
           }`}

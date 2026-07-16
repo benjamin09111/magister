@@ -70,13 +70,13 @@ export default function TSCHScheduleGrid() {
   const slots = Array.from({ length: params.H }, (_, i) => i);
 
   return (
-    <div className="bg-white border border-slate-350 rounded p-5 shadow-sm relative overflow-hidden">
-      <div className="flex justify-between items-center mb-4 gap-4">
+    <div className="bg-white border border-slate-350 rounded p-4 shadow-sm relative overflow-hidden">
+      <div className="flex justify-between items-center mb-3 gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-700">
+          <h3 className="text-xs font-bold text-slate-700">
             Planificador TSCH (Timeslot × Canal por Superframe)
           </h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[10px] text-slate-500 mt-0.5">
             Muestra la asignación dinámica de celdas para cada salto (duración = 2 slots por enlace) en el Superframe (Hiperperíodo = H slots).
           </p>
         </div>
@@ -116,12 +116,6 @@ export default function TSCHScheduleGrid() {
             </button>
           )}
         </div>
-      </div>
-
-      {/* TSCH Superframe Context Banner */}
-      <div className="mb-4 bg-slate-50 border border-slate-250 rounded p-3 text-[10px] text-slate-600 leading-normal">
-        <span className="font-bold text-slate-700 block mb-0.5">Nomenclatura de Red TSCH:</span>
-        En redes basadas en TSCH (IEEE 802.15.4e/6TiSCH), el tiempo se divide en slots agrupados periódicamente en una estructura llamada <strong>Superframe</strong> (o <em>Slotframe</em>). Para asegurar que el schedule de tiempo real sea totalmente periódico y libre de colisiones, se ajusta el tamaño del Superframe al hiperperíodo mínimo común múltiplo de todos los flujos de red (<code className="bg-slate-200 px-1 rounded text-slate-700">H = {params.H} slots</code>).
       </div>
 
       {/* Grid container with horizontal scrolling */}

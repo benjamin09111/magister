@@ -27,12 +27,12 @@ export default function TSCHFlowTable() {
   }
 
   return (
-    <div className="bg-white border border-slate-350 rounded p-5 shadow-sm mt-5">
-      <h3 className="text-sm font-bold text-slate-700 mb-3">
+    <div className="bg-white border border-slate-350 rounded p-4 shadow-sm mt-3 flex flex-col max-h-[190px]">
+      <h3 className="text-xs font-bold text-slate-700 mb-2">
         Detalle de Flujos de Sensores
       </h3>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">

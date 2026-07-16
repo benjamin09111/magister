@@ -53,6 +53,10 @@ interface SimStore {
   setSelectedCompareMethodView: (val: 'A' | 'B') => void;
   showAllConflicts: boolean;
   setShowAllConflicts: (show: boolean) => void;
+  isSelectingGateway: boolean;
+  setIsSelectingGateway: (val: boolean) => void;
+  importedTopologyName: string | null;
+  setImportedTopologyName: (name: string | null) => void;
 }
 
 const defaultParams: SimParameters = {
@@ -68,6 +72,26 @@ const defaultParams: SimParameters = {
   conflict_pair_mode: 'paper_double',
   gateway_mode: 'auto',
   selected_gateway: null,
+  // Default routing parameter overrides
+  mo_psi: 0.0265,
+  aco_alpha: 1.0,
+  aco_beta: 2.5,
+  aco_rho: 0.10,
+  aco_Q: 2.0,
+  aco_num_ants: 20,
+  aco_num_iterations: 35,
+  aco_hops_penalty: 0.001,
+  aco_partial_overlap_penalty: 25.0,
+  ql_alpha: 0.1,
+  ql_gamma: 0.9,
+  ql_epsilon_start: 1.0,
+  ql_epsilon_min: 0.05,
+  ql_num_episodes: 400,
+  sar_alpha: 0.1,
+  sar_gamma: 0.9,
+  sar_epsilon_start: 1.0,
+  sar_epsilon_min: 0.05,
+  sar_num_episodes: 400,
 };
 
 const defaultSweepParams: SweepParameters = {
@@ -140,4 +164,8 @@ export const useSimStore = create<SimStore>((set) => ({
   setSelectedCompareMethodView: (selectedCompareMethodView) => set({ selectedCompareMethodView }),
   showAllConflicts: false,
   setShowAllConflicts: (showAllConflicts) => set({ showAllConflicts }),
+  isSelectingGateway: false,
+  setIsSelectingGateway: (isSelectingGateway) => set({ isSelectingGateway }),
+  importedTopologyName: null,
+  setImportedTopologyName: (importedTopologyName) => set({ importedTopologyName }),
 }));
