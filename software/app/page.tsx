@@ -413,7 +413,7 @@ export default function Home() {
                         ...compareMethodsSelected,
                         methodA: e.target.value
                       })}
-                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
+                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
                     >
                       <option value="SP">Shortest Path (SP)</option>
                       <option value="MO">Minimal Overlap (MO)</option>
@@ -433,7 +433,7 @@ export default function Home() {
                         ...compareMethodsSelected,
                         methodB: e.target.value
                       })}
-                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
+                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
                     >
                       <option value="MO">Minimal Overlap (MO)</option>
                       <option value="SP">Shortest Path (SP)</option>

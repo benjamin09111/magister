@@ -130,7 +130,7 @@ export default function SweepConfigPanel() {
           <select
             value={sweepParams.sweep_param}
             onChange={(e) => handleParamSelectChange(e.target.value as any)}
-            className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold"
+            className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
           >
             <option value="N">Flujos de red / Nodos (N)</option>
             <option value="lambda">Densidad de enlaces (Lambda)</option>
@@ -146,7 +146,7 @@ export default function SweepConfigPanel() {
               type="number"
               value={sweepParams.sweep_start}
               onChange={(e) => updateSweepParams({ sweep_start: parseFloat(e.target.value) || 0 })}
-              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:ring-1 focus:ring-[#0056b3]"
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
             />
           </div>
           <div>
@@ -155,7 +155,7 @@ export default function SweepConfigPanel() {
               type="number"
               value={sweepParams.sweep_end}
               onChange={(e) => updateSweepParams({ sweep_end: parseFloat(e.target.value) || 0 })}
-              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:ring-1 focus:ring-[#0056b3]"
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
             />
           </div>
           <div>
@@ -164,7 +164,7 @@ export default function SweepConfigPanel() {
               type="number"
               value={sweepParams.sweep_step}
               onChange={(e) => updateSweepParams({ sweep_step: parseFloat(e.target.value) || 0 })}
-              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:ring-1 focus:ring-[#0056b3]"
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-semibold font-mono rounded p-1.5 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
             />
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function SweepConfigPanel() {
           <select
             value={sweepParams.replicas}
             onChange={(e) => updateSweepParams({ replicas: parseInt(e.target.value) })}
-            className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold"
+            className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
           >
             <option value="10">10 Réplicas (Debug Rápido)</option>
             <option value="50">50 Réplicas (Intermedio)</option>

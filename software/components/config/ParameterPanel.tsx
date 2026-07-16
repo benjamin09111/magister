@@ -82,7 +82,7 @@ export default function ParameterPanel() {
             max="100"
             value={params.N}
             onChange={(e) => updateParams({ N: Math.max(10, Math.min(100, parseInt(e.target.value) || 10)) })}
-            className="w-20 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold text-center focus:ring-1 focus:ring-[#0056b3] font-mono"
+            className="w-20 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold text-center focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
           />
         </div>
 
@@ -92,7 +92,7 @@ export default function ParameterPanel() {
           <select
             value={params.lambda}
             onChange={(e) => updateParams({ lambda: parseInt(e.target.value) })}
-            className="w-28 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:ring-1 focus:ring-[#0056b3] font-mono"
+            className="w-28 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
           >
             <option value="4">4 (Disperso)</option>
             <option value="8">8 (Medio)</option>
@@ -103,14 +103,16 @@ export default function ParameterPanel() {
         {/* Canales m */}
         <div className="flex justify-between items-center text-xs gap-3">
           <span className="text-slate-700 font-semibold">Canales TSCH (m):</span>
-          <input
-            type="number"
-            min="2"
-            max="16"
+          <select
             value={params.m_fixed}
-            onChange={(e) => updateParams({ m_fixed: Math.max(2, Math.min(16, parseInt(e.target.value) || 2)) })}
-            className="w-20 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold text-center focus:ring-1 focus:ring-[#0056b3] font-mono"
-          />
+            onChange={(e) => updateParams({ m_fixed: parseInt(e.target.value) })}
+            className="w-28 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
+          >
+            <option value="16">16 (Estándar)</option>
+            <option value="8">8 (Medio)</option>
+            <option value="4">4 (Coexistencia)</option>
+            <option value="2">2 (Contención)</option>
+          </select>
         </div>
 
         {/* Hyperperiodo H */}
@@ -119,7 +121,7 @@ export default function ParameterPanel() {
           <select
             value={params.H}
             onChange={(e) => updateParams({ H: parseInt(e.target.value) })}
-            className="w-28 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:ring-1 focus:ring-[#0056b3] font-mono"
+            className="w-28 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
           >
             <option value="64">64 slots</option>
             <option value="128">128 slots</option>
@@ -137,7 +139,7 @@ export default function ParameterPanel() {
               max={params.eta_max}
               value={params.eta_min}
               onChange={(e) => updateParams({ eta_min: Math.max(1, parseInt(e.target.value) || 1) })}
-              className="w-10 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 text-center font-mono font-semibold"
+              className="w-10 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 text-center font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
               title="eta_min"
             />
             <span className="text-slate-400 font-semibold text-[10px]">a</span>
@@ -147,7 +149,7 @@ export default function ParameterPanel() {
               max="10"
               value={params.eta_max}
               onChange={(e) => updateParams({ eta_max: Math.max(params.eta_min, parseInt(e.target.value) || 2) })}
-              className="w-10 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 text-center font-mono font-semibold"
+              className="w-10 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 text-center font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
               title="eta_max"
             />
           </div>
@@ -159,7 +161,7 @@ export default function ParameterPanel() {
           <select
             value={routingMethod}
             onChange={(e) => setRoutingMethod(e.target.value as any)}
-            className="w-40 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:ring-1 focus:ring-[#0056b3] font-mono"
+            className="w-40 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
           >
             <option value="MO">Minimal Overlap (MO)</option>
             <option value="SP">Shortest Path (SP)</option>
@@ -172,7 +174,7 @@ export default function ParameterPanel() {
         {/* Gateway Selection Mode */}
         <div className="flex justify-between items-center text-xs gap-3">
           <span className="text-slate-700 font-semibold">Gateway:</span>
-          <div className="flex bg-slate-100 border border-slate-250 rounded p-0.5 text-[10px] font-semibold">
+          <div className="flex bg-slate-100 border border-slate-250 rounded p-0.5 text-[10px] font-semibold font-mono">
             <button
               type="button"
               onClick={() => updateParams({ gateway_mode: 'auto' })}
@@ -205,7 +207,7 @@ export default function ParameterPanel() {
             type="checkbox"
             checked={params.use_implicit_deadlines}
             onChange={(e) => updateParams({ use_implicit_deadlines: e.target.checked })}
-            className="rounded bg-white border-slate-300 text-[#0056b3] focus:ring-0 cursor-pointer w-4 h-4"
+            className="rounded bg-white border-slate-300 text-[#0056b3] focus:outline-none focus:ring-1 focus:ring-[#0056b3] cursor-pointer w-4 h-4"
           />
         </div>
 
