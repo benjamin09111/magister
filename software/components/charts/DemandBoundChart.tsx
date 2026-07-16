@@ -79,7 +79,7 @@ export default function DemandBoundChart() {
           }`}>
             {isSchedulable ? '✓ SISTEMA SCHEDULABLE' : '✗ SOBRECARGA DETECTADA'}
           </span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded border border-slate-250 bg-slate-50 text-[10px] font-mono text-slate-655 font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded border border-slate-250 bg-slate-50 text-[10px] font-mono text-slate-600 font-bold">
             Worst Slack: {worstSlack.toFixed(1)} slots
           </span>
         </div>

@@ -260,7 +260,7 @@ export default function Home() {
             className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded transition-all ${
               activeTab === 'network'
                 ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                : 'text-slate-655 hover:text-slate-900 hover:bg-slate-200/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
             <Network size={14} />
@@ -271,7 +271,7 @@ export default function Home() {
             className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded transition-all ${
               activeTab === 'compare'
                 ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                : 'text-slate-655 hover:text-slate-900 hover:bg-slate-200/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
             <BarChart3 size={14} />
@@ -282,7 +282,7 @@ export default function Home() {
             className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded transition-all ${
               activeTab === 'scheduler'
                 ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                : 'text-slate-655 hover:text-slate-900 hover:bg-slate-200/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
             <Activity size={14} />
@@ -293,7 +293,7 @@ export default function Home() {
             className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded transition-all ${
               activeTab === 'sweep'
                 ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                : 'text-slate-655 hover:text-slate-900 hover:bg-slate-200/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
             <BarChart3 size={14} />
@@ -304,7 +304,7 @@ export default function Home() {
             className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded transition-all ${
               activeTab === 'history'
                 ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                : 'text-slate-655 hover:text-slate-900 hover:bg-slate-200/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
             <Database size={14} />
@@ -333,7 +333,7 @@ export default function Home() {
                     }`}>
                       {activeResult.isSchedulable ? '✓ PROGRAMABLE' : '✗ NO PROGRAMABLE'}
                     </span>
-                    <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-white border border-slate-300 text-slate-700 shadow-sm">
+                    <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-white border border-slate-300 text-slate-750 shadow-sm">
                       SOLAPES: {activeResult.totalOverlaps}
                     </span>
                   </div>
@@ -353,21 +353,19 @@ export default function Home() {
             <div className="lg:col-span-4 flex flex-col gap-6">
               <ParameterPanel />
 
-              {/* Botón para iniciar simulación individual */}
-              <div className="bg-white border border-slate-350 rounded p-4 shadow-sm">
-                <button
-                  onClick={handleStartSimulation}
-                  disabled={simStatus === 'running'}
-                  className={`w-full py-2.5 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
-                    simStatus === 'running'
-                      ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed'
-                      : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'
-                  }`}
-                >
-                  <Cpu size={14} className={simStatus === 'running' ? 'animate-spin' : ''} />
-                  {simStatus === 'running' ? 'Simulando...' : 'Iniciar Simulación'}
-                </button>
-              </div>
+              {/* Botón suelto para iniciar simulación individual */}
+              <button
+                onClick={handleStartSimulation}
+                disabled={simStatus === 'running'}
+                className={`w-full py-3 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all shadow-sm ${
+                  simStatus === 'running'
+                    ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed'
+                    : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'
+                }`}
+              >
+                <Cpu size={14} className={simStatus === 'running' ? 'animate-spin' : ''} />
+                {simStatus === 'running' ? 'Simulando...' : 'Iniciar Simulación'}
+              </button>
             </div>
           </>
         )}
@@ -446,10 +444,11 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Botón suelto de comparación */}
                 <button
                   onClick={handleStartSimulation}
                   disabled={simStatus === 'running'}
-                  className={`w-full py-2.5 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                  className={`w-full py-3 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all shadow-sm ${
                     simStatus === 'running'
                       ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed'
                       : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'

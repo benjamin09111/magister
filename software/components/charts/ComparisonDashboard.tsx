@@ -86,7 +86,7 @@ export default function ComparisonDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse font-sans">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
+              <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                 <th className="py-2.5 px-3">Métrica Analizada</th>
                 <th className="py-2.5 px-3 text-center" style={{ color: getColor(nameA) }}>
                   {nameA} (Método A)

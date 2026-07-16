@@ -335,7 +335,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
   }, [selectedSensor, activeResult, graphData]);
 
   return (
-    <div className="relative w-full h-[500px] border border-slate-300 rounded overflow-hidden shadow-sm">
+    <div className={`relative w-full ${isCompareMode ? 'h-[460px]' : 'h-[545px]'} border border-slate-300 rounded overflow-hidden shadow-sm`}>
       <div ref={containerRef} className="cytoscape-container absolute inset-0" />
 
       {/* Legend */}

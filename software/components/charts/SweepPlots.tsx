@@ -305,7 +305,7 @@ export default function SweepPlots() {
             <div className="overflow-x-auto border border-slate-200 rounded">
               <table className="w-full text-left border-collapse text-xs font-mono">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-650 font-bold bg-slate-100/80">
+                  <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-100/80">
                     <th className="py-2.5 px-4 font-sans">Valor ({sweep_param})</th>
                     <th className="py-2.5 px-4 font-sans">Algoritmo</th>
                     <th className="py-2.5 px-4 text-center">Solapamientos (Promedio)</th>

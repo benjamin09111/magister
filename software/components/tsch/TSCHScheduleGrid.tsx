@@ -89,7 +89,7 @@ export default function TSCHScheduleGrid() {
                 className={`px-2.5 py-1 rounded transition-all ${
                   selectedCompareMethodView === 'A'
                     ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                    : 'text-slate-655 hover:text-slate-800 hover:bg-slate-200/50'
+                    : 'text-slate-600 hover:text-slate-800 hover:bg-slate-200/50'
                 }`}
               >
                 {compareMethodsSelected.methodA}
@@ -99,7 +99,7 @@ export default function TSCHScheduleGrid() {
                 className={`px-2.5 py-1 rounded transition-all ${
                   selectedCompareMethodView === 'B'
                     ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                    : 'text-slate-655 hover:text-slate-800 hover:bg-slate-200/50'
+                    : 'text-slate-600 hover:text-slate-800 hover:bg-slate-200/50'
                 }`}
               >
                 {compareMethodsSelected.methodB}
@@ -153,7 +153,7 @@ export default function TSCHScheduleGrid() {
           {channels.map((channel) => (
             <div key={channel} className="flex">
               {/* Channel Label */}
-              <div className="w-14 shrink-0 text-[10px] font-mono font-bold text-slate-655 flex items-center justify-center border-r border-slate-200 py-1 bg-slate-50">
+              <div className="w-14 shrink-0 text-[10px] font-mono font-bold text-slate-600 flex items-center justify-center border-r border-slate-200 py-1 bg-slate-50">
                 CH {channel}
               </div>
               

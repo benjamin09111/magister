@@ -75,7 +75,7 @@ export default function ParameterPanel() {
       <div className="flex flex-col gap-2.5">
         {/* Nodos N */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Nodos de Red (N):</span>
+          <span className="text-slate-700 font-semibold">Nodos de Red (N):</span>
           <input
             type="number"
             min="10"
@@ -88,7 +88,7 @@ export default function ParameterPanel() {
 
         {/* Lambda Density */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Densidad (λ):</span>
+          <span className="text-slate-700 font-semibold">Densidad (λ):</span>
           <select
             value={params.lambda}
             onChange={(e) => updateParams({ lambda: parseInt(e.target.value) })}
@@ -102,7 +102,7 @@ export default function ParameterPanel() {
 
         {/* Canales m */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Canales TSCH (m):</span>
+          <span className="text-slate-700 font-semibold">Canales TSCH (m):</span>
           <input
             type="number"
             min="2"
@@ -115,7 +115,7 @@ export default function ParameterPanel() {
 
         {/* Hyperperiodo H */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Hiperperíodo (H):</span>
+          <span className="text-slate-700 font-semibold">Hiperperíodo (H):</span>
           <select
             value={params.H}
             onChange={(e) => updateParams({ H: parseInt(e.target.value) })}
@@ -129,7 +129,7 @@ export default function ParameterPanel() {
 
         {/* Rango Periodos (Eta) */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Períodos (eta):</span>
+          <span className="text-slate-700 font-semibold">Períodos (eta):</span>
           <div className="flex items-center gap-1">
             <input
               type="number"
@@ -155,7 +155,7 @@ export default function ParameterPanel() {
 
         {/* Algoritmo de Enrutamiento */}
         <div className="flex justify-between items-center text-xs gap-3 pt-2 border-t border-slate-150">
-          <span className="text-slate-655 font-semibold">Enrutamiento:</span>
+          <span className="text-slate-700 font-semibold">Enrutamiento:</span>
           <select
             value={routingMethod}
             onChange={(e) => setRoutingMethod(e.target.value as any)}
@@ -171,7 +171,7 @@ export default function ParameterPanel() {
 
         {/* Gateway Selection Mode */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Gateway:</span>
+          <span className="text-slate-700 font-semibold">Gateway:</span>
           <div className="flex bg-slate-100 border border-slate-250 rounded p-0.5 text-[10px] font-semibold">
             <button
               type="button"
@@ -200,7 +200,7 @@ export default function ParameterPanel() {
 
         {/* Toggle implicit deadline */}
         <div className="flex justify-between items-center text-xs gap-3">
-          <span className="text-slate-655 font-semibold">Deadlines Implícitos:</span>
+          <span className="text-slate-700 font-semibold">Deadlines Implícitos:</span>
           <input
             type="checkbox"
             checked={params.use_implicit_deadlines}
@@ -211,7 +211,7 @@ export default function ParameterPanel() {
 
         {/* Conflict mode read-only with question tooltip */}
         <div className="flex justify-between items-center text-xs gap-3 relative group pb-1">
-          <span className="text-slate-655 font-semibold flex items-center gap-1 select-none">
+          <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
             Modo Conflictos:
             <span 
               className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help"
@@ -234,7 +234,7 @@ export default function ParameterPanel() {
           <button
             type="button"
             onClick={resetParams}
-            className="py-1.5 text-xs font-semibold rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-650 transition-colors"
+            className="py-1.5 text-xs font-semibold rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
           >
             Reset
           </button>
