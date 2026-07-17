@@ -3,7 +3,11 @@
 import React from 'react';
 import { useSimStore } from '@/lib/store';
 
-export default function TSCHFlowTable() {
+interface TSCHFlowTableProps {
+  forceMethodView?: 'A' | 'B';
+}
+
+export default function TSCHFlowTable({ forceMethodView }: TSCHFlowTableProps = {}) {
   const { 
     activeResult: storeActiveResult, 
     selectedSensor, 
@@ -15,12 +19,13 @@ export default function TSCHFlowTable() {
 
   const activeResult = React.useMemo(() => {
     if (isCompareMode && compareResultsPayload) {
-      return selectedCompareMethodView === 'A' 
+      const view = forceMethodView || selectedCompareMethodView;
+      return view === 'A' 
         ? compareResultsPayload.method_a 
         : compareResultsPayload.method_b;
     }
     return storeActiveResult;
-  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, storeActiveResult]);
+  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, forceMethodView, storeActiveResult]);
 
   if (!activeResult || !activeResult.flows) {
     return null;

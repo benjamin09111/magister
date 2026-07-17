@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSimStore } from '@/lib/store';
 import { fetchApi } from '@/lib/api-client';
 import { Toaster, toast } from 'sonner';
-import { Activity, ShieldAlert, Cpu, BarChart3, HelpCircle, History, Network, CheckCircle, Database, AlertTriangle, X, Zap, RefreshCw, Check } from 'lucide-react';
+import { Activity, ShieldAlert, Cpu, BarChart3, HelpCircle, History, Network, CheckCircle, Database, AlertTriangle, X, Zap, RefreshCw, Check, Save } from 'lucide-react';
 
 // Components
 import TopologyGraph from '@/components/graph/TopologyGraph';
@@ -41,13 +41,23 @@ export default function Home() {
     setCompareResultsPayload,
     setSelectedCompareMethodView,
     showAllConflicts,
-    setShowAllConflicts
+    setShowAllConflicts,
+    importedTopologyName,
+    setImportedTopologyName,
+    showSaveTopologyModal,
+    setShowSaveTopologyModal
   } = useSimStore();
 
   const [activeTab, setActiveTab] = useState<'simulador' | 'comparacion' | 'investigacion' | 'guardados' | 'sobre_simulador'>('simulador');
   const [savedSubTab, setSavedSubTab] = useState<'topologias' | 'simulaciones'>('topologias');
   const [methodDrawer, setMethodDrawer] = useState<string | null>(null);
   const [showNewSimModal, setShowNewSimModal] = useState(false);
+  const [topologyNameInput, setTopologyNameInput] = useState('');
+
+  const isDefaultTopology = 
+    params.N === 30 &&
+    params.lambda === 8 &&
+    params.gateway_mode === 'auto';
 
   const exportSimulationJson = () => {
     if (!activeResult) return;
@@ -62,6 +72,41 @@ export default function Home() {
     downloadAnchor.click();
     downloadAnchor.remove();
     toast.success('Resultados exportados como JSON');
+  };
+
+  const handleSaveTopology = async () => {
+    if (!topologyNameInput.trim()) {
+      toast.error('Por favor, ingresa un nombre para la topología.');
+      return;
+    }
+    if (!graphData) return;
+
+    try {
+      const payload = {
+        name: topologyNameInput.trim(),
+        N: params.N,
+        lambda_val: params.lambda,
+        sensors_count: params.sensorsCount,
+        gateway: params.selected_gateway,
+        gateway_mode: params.gateway_mode,
+        nodes: graphData.nodes,
+        edges: graphData.edges
+      };
+
+      const result = await fetchApi('/topologies', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (result.status === 'success') {
+        toast.success(`Topología "${topologyNameInput.trim()}" guardada con éxito`);
+        setImportedTopologyName(topologyNameInput.trim());
+        setShowSaveTopologyModal(false);
+        setTopologyNameInput('');
+      }
+    } catch (e: any) {
+      toast.error('Error al guardar la topología: ' + e.message);
+    }
   };
 
   // Sincronizar isCompareMode según la pestaña seleccionada
@@ -354,7 +399,7 @@ export default function Home() {
       </header>
 
       {/* Main Workspace Layout */}
-      <div className={`grid grid-cols-1 lg:grid-cols-12 items-start flex-1 w-full ${activeTab === 'simulador' && simStatus === 'completed' ? 'p-0 gap-0' : 'p-4 gap-4'}`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-12 items-stretch w-full ${activeTab === 'simulador' && simStatus === 'completed' ? 'p-0 gap-0' : 'p-4 gap-4'}`}>
         
         {/* Pestaña: Simulador */}
         {activeTab === 'simulador' && (
@@ -458,110 +503,105 @@ export default function Home() {
         {/* Pestaña: Comparar Métodos (Grafo a la izquierda, selectores A/B a la derecha) */}
         {activeTab === 'comparacion' && (
           <>
-            {/* Lado izquierdo: Grafo de la red y dashboard comparativo con DBF */}
+            {/* Lado izquierdo: Grafo de la red (o layout de comparación al completar) */}
             <div className="lg:col-span-8 flex flex-col gap-6">
-              <div className="relative">
-                <TopologyGraph />
-                
-                {simStatus === 'completed' && compareResultsPayload && (
-                  <>
-                    <div className="absolute top-4 left-4 z-10 font-mono">
-                      <button
-                        onClick={() => setShowAllConflicts(!showAllConflicts)}
-                        className={`px-3 py-1.5 text-[10px] font-bold rounded border shadow-sm transition-all flex items-center gap-1.5 active:scale-95 ${
-                          showAllConflicts
-                            ? 'bg-[#d62728] border-[#b91c1c] text-white font-bold'
-                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span>⚡</span>
-                        {showAllConflicts ? 'VER FLUJO INDIVIDUAL' : 'VISUALIZAR CONFLICTOS'}
-                      </button>
+              {simStatus === 'completed' && compareResultsPayload ? (
+                // Al completar la simulación, mostramos la comparación de métricas y luego el lado a lado detallado
+                <div className="flex flex-col gap-6">
+                  {/* Dashboard de Comparación de Desempeño (Tabla + Recharts + DBF) */}
+                  <ComparisonDashboard />
+
+                  {/* Dos Columnas lado a lado para cada algoritmo */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {/* Columna Algoritmo 1 */}
+                    <div className="flex flex-col gap-4 border border-slate-200 rounded p-4 bg-slate-50/50 shadow-sm animate-in fade-in duration-200">
+                      <div className="flex justify-between items-center bg-white border border-slate-200 rounded py-2 px-3 shadow-sm">
+                        <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider font-mono">
+                          Algoritmo 1: {compareMethodsSelected.methodA}
+                        </h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono">
+                          Rutas & Schedule 1
+                        </span>
+                      </div>
+                      
+                      <div className="relative">
+                        <TopologyGraph forceMethodView="A" />
+                        <div className="absolute top-4 left-4 z-10 font-mono">
+                          <button
+                            onClick={() => setShowAllConflicts(!showAllConflicts)}
+                            className={`px-3 py-1.5 text-[10px] font-bold rounded border shadow-sm transition-all flex items-center gap-1.5 active:scale-95 ${
+                              showAllConflicts
+                                ? 'bg-[#d62728] border-[#b91c1c] text-white font-bold'
+                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>⚡</span>
+                            {showAllConflicts ? 'VER FLUJO INDIVIDUAL' : 'VISUALIZAR CONFLICTOS'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <TSCHScheduleGrid forceMethodView="A" />
+                      <TSCHFlowTable forceMethodView="A" />
                     </div>
 
-                    <div className="absolute top-4 right-4 z-10 flex gap-1.5 font-mono">
-                      <span className="px-2.5 py-1 text-[10px] font-bold rounded bg-[#0056b3]/10 border border-[#0056b3]/45 text-[#0056b3] shadow-sm">
-                        COMPARACIÓN: {compareMethodsSelected.methodA} vs {compareMethodsSelected.methodB}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
+                    {/* Columna Algoritmo 2 */}
+                    <div className="flex flex-col gap-4 border border-slate-200 rounded p-4 bg-slate-50/50 shadow-sm animate-in fade-in duration-200">
+                      <div className="flex justify-between items-center bg-white border border-slate-200 rounded py-2 px-3 shadow-sm">
+                        <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider font-mono">
+                          Algoritmo 2: {compareMethodsSelected.methodB}
+                        </h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                          Rutas & Schedule 2
+                        </span>
+                      </div>
+                      
+                      <div className="relative">
+                        <TopologyGraph forceMethodView="B" />
+                        <div className="absolute top-4 left-4 z-10 font-mono">
+                          <button
+                            onClick={() => setShowAllConflicts(!showAllConflicts)}
+                            className={`px-3 py-1.5 text-[10px] font-bold rounded border shadow-sm transition-all flex items-center gap-1.5 active:scale-95 ${
+                              showAllConflicts
+                                ? 'bg-[#d62728] border-[#b91c1c] text-white font-bold'
+                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>⚡</span>
+                            {showAllConflicts ? 'VER FLUJO INDIVIDUAL' : 'VISUALIZAR CONFLICTOS'}
+                          </button>
+                        </div>
+                      </div>
 
-              {simStatus === 'completed' && compareResultsPayload && (
-                <ComparisonDashboard />
+                      <TSCHScheduleGrid forceMethodView="B" />
+                      <TSCHFlowTable forceMethodView="B" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Antes de la simulación, solo mostramos el Grafo para visualización de topología
+                <div className="relative flex flex-col">
+                  <TopologyGraph />
+                </div>
               )}
             </div>
 
             {/* Lado derecho: Configuración y controles de la simulación comparativa */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="bg-white border border-slate-350 rounded p-4 shadow-sm">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 pb-1.5 border-b border-slate-200">
-                  Comparación de Métodos
-                </h3>
-                <p className="text-[10px] text-slate-500 mb-4 leading-normal">
-                  Ejecuta dos algoritmos de enrutamiento sobre el mismo grafo y conjunto de flujos para comparar métricas y programabilidad.
-                </p>
-
-                <div className="flex flex-col gap-3.5 bg-slate-50 border border-slate-200 rounded p-3 mb-4 font-mono">
-                  <div>
-                    <label className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Método A (Referencia / Baseline):
-                    </label>
-                    <select
-                      value={compareMethodsSelected.methodA}
-                      onChange={(e) => setCompareMethodsSelected({
-                        ...compareMethodsSelected,
-                        methodA: e.target.value
-                      })}
-                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
-                    >
-                      <option value="SP">Shortest Path (SP)</option>
-                      <option value="MO">Minimal Overlap (MO)</option>
-                      <option value="MO_ACO">MO + ACO</option>
-                      <option value="QLearning">Q-Learning Routing</option>
-                      <option value="SARSA">SARSA Routing</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Método B (Comparativo / Optimizado):
-                    </label>
-                    <select
-                      value={compareMethodsSelected.methodB}
-                      onChange={(e) => setCompareMethodsSelected({
-                        ...compareMethodsSelected,
-                        methodB: e.target.value
-                      })}
-                      className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
-                    >
-                      <option value="MO">Minimal Overlap (MO)</option>
-                      <option value="SP">Shortest Path (SP)</option>
-                      <option value="MO_ACO">MO + ACO</option>
-                      <option value="QLearning">Q-Learning Routing</option>
-                      <option value="SARSA">SARSA Routing</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Botón suelto de comparación */}
-                <button
-                  onClick={handleStartSimulation}
-                  disabled={simStatus === 'running'}
-                  className={`w-full py-3 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all shadow-sm ${
-                    simStatus === 'running'
-                      ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed'
-                      : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'
-                  }`}
-                >
-                  <Cpu size={14} className={simStatus === 'running' ? 'animate-spin' : ''} />
-                  {simStatus === 'running' ? 'Comparando...' : 'Iniciar Comparación'}
-                </button>
-              </div>
-
-              {/* Parámetros de Red heredados */}
+            <div className="lg:col-span-4 flex flex-col gap-4">
               <ParameterPanel />
+
+              <button
+                onClick={handleStartSimulation}
+                disabled={simStatus === 'running'}
+                className={`w-full py-3 rounded font-bold text-xs flex items-center justify-center gap-2 border transition-all shadow-sm ${
+                  simStatus === 'running'
+                    ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed'
+                    : 'bg-[#02529c] hover:bg-[#003d73] border-none text-white cursor-pointer active:scale-95'
+                }`}
+              >
+                <Cpu size={14} className={simStatus === 'running' ? 'animate-spin' : ''} />
+                {simStatus === 'running' ? 'Comparando...' : 'Iniciar Comparación'}
+              </button>
             </div>
           </>
         )}
@@ -754,15 +794,24 @@ export default function Home() {
             </div>
             
             <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  exportSimulationJson();
-                }}
-                className="w-full py-1.5 text-xs font-bold rounded bg-[#2ca02c] hover:bg-[#258525] text-white transition-colors text-center shadow-sm cursor-pointer"
-              >
-                Guardar resultados (JSON)
-              </button>
+              {!importedTopologyName && (
+                <button
+                  type="button"
+                  disabled={isDefaultTopology}
+                  onClick={() => {
+                    setShowNewSimModal(false);
+                    setShowSaveTopologyModal(true);
+                  }}
+                  className={`w-full py-1.5 text-xs font-bold rounded transition-colors text-center shadow-sm ${
+                    isDefaultTopology
+                      ? 'bg-slate-50 border border-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-[#2ca02c] hover:bg-[#258525] text-white cursor-pointer'
+                  }`}
+                  title={isDefaultTopology ? "Esta es la topología por defecto y no se puede guardar." : undefined}
+                >
+                  {isDefaultTopology ? "Topología por defecto (No se puede guardar)" : "Guardar Topología"}
+                </button>
+              )}
               
               <div className="flex gap-2 w-full">
                 <button
@@ -784,6 +833,67 @@ export default function Home() {
                   Volver a empezar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SAVE TOPOLOGY MODAL */}
+      {showSaveTopologyModal && (
+        <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white border border-slate-300 max-w-sm w-full rounded shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 relative font-sans">
+            {/* Header strip */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#2ca02c]" />
+            
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Save className="w-4 h-4 text-[#2ca02c]" />
+                Guardar Topología Activa
+              </h4>
+              <button 
+                onClick={() => setShowSaveTopologyModal(false)}
+                className="text-xs text-slate-400 hover:text-slate-650 font-bold"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-5 text-xs text-slate-600 flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-bold text-slate-700">Nombre de la topología:</label>
+                <input
+                  type="text"
+                  maxLength={30}
+                  placeholder="Ej: Red de sensores densa"
+                  value={topologyNameInput}
+                  onChange={(e) => setTopologyNameInput(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-sans font-semibold text-slate-800"
+                />
+              </div>
+              <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-mono bg-slate-50 p-2 rounded border border-slate-200">
+                <span className="font-bold text-slate-600 uppercase mb-0.5">Resumen de red:</span>
+                <span>• Nodos totales (N): {params.N}</span>
+                <span>• Densidad (λ): {params.lambda}</span>
+                <span>• Emisores (Sensores): {params.sensorsCount}</span>
+                <span>• Gateway (GW): Nodo {params.selected_gateway}</span>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSaveTopologyModal(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded border border-slate-350 bg-white hover:bg-slate-100 text-slate-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTopology}
+                className="px-3 py-1.5 text-xs font-bold rounded bg-[#2ca02c] hover:bg-[#258525] text-white transition-colors shadow-sm cursor-pointer"
+              >
+                Guardar
+              </button>
             </div>
           </div>
         </div>

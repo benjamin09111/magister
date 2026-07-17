@@ -22,7 +22,12 @@ export default function ParameterPanel() {
     isSelectingGateway,
     setIsSelectingGateway,
     importedTopologyName,
-    setImportedTopologyName
+    setImportedTopologyName,
+    showSaveTopologyModal,
+    setShowSaveTopologyModal,
+    isCompareMode,
+    compareMethodsSelected,
+    setCompareMethodsSelected
   } = useSimStore();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -30,9 +35,7 @@ export default function ParameterPanel() {
   const [draftParams, setDraftParams] = useState<Partial<SimParameters>>({});
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showSaveModal, setShowSaveModal] = useState(false);
   const [savedTopologies, setSavedTopologies] = useState<any[]>([]);
-  const [topologyNameInput, setTopologyNameInput] = useState('');
   const [loadingTopologies, setLoadingTopologies] = useState(false);
 
   const [lastGenerated, setLastGenerated] = useState<{
@@ -42,6 +45,12 @@ export default function ParameterPanel() {
     gateway_mode: 'auto' | 'manual';
     sensorsCount: number;
   } | null>(null);
+
+  const [activeParamConfigTab, setActiveParamConfigTab] = useState<'A' | 'B'>('A');
+
+  const currentMethodToConfigure = isCompareMode
+    ? (activeParamConfigTab === 'A' ? compareMethodsSelected.methodA : compareMethodsSelected.methodB)
+    : routingMethod;
 
   const loadSavedTopologies = async () => {
     setLoadingTopologies(true);
@@ -61,40 +70,7 @@ export default function ParameterPanel() {
     }
   }, [showImportModal]);
 
-  const handleSaveTopology = async () => {
-    if (!topologyNameInput.trim()) {
-      toast.error('Por favor, ingresa un nombre para la topología.');
-      return;
-    }
-    if (!graphData) return;
 
-    try {
-      const payload = {
-        name: topologyNameInput.trim(),
-        N: params.N,
-        lambda_val: params.lambda,
-        sensors_count: params.sensorsCount,
-        gateway: params.selected_gateway,
-        gateway_mode: params.gateway_mode,
-        nodes: graphData.nodes,
-        edges: graphData.edges
-      };
-
-      const result = await fetchApi('/topologies', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      if (result.status === 'success') {
-        toast.success(`Topología "${topologyNameInput.trim()}" guardada con éxito`);
-        setImportedTopologyName(topologyNameInput.trim());
-        setShowSaveModal(false);
-        setTopologyNameInput('');
-      }
-    } catch (e: any) {
-      toast.error('Error al guardar la topología: ' + e.message);
-    }
-  };
 
   const handleDeleteTopology = async (id: string, name: string) => {
     try {
@@ -133,6 +109,14 @@ export default function ParameterPanel() {
 
     toast.success(`Topología "${topo.name}" importada correctamente`);
   };
+
+  const isDefaultTopology = 
+    (!lastGenerated || (
+      lastGenerated.N === 30 &&
+      lastGenerated.lambda === 8 &&
+      lastGenerated.gateway_mode === 'auto'
+    )) &&
+    params.gateway_mode === 'auto';
 
   // Sync initial generated parameters if graph exists on mount or loads
   useEffect(() => {
@@ -278,19 +262,26 @@ export default function ParameterPanel() {
                 <FolderOpen className="w-3.5 h-3.5 text-slate-500" />
                 Importar Topología
               </button>
-              <button
-                type="button"
-                onClick={() => setShowSaveModal(true)}
-                disabled={!graphData}
-                className={`py-1.5 px-2 rounded border transition-colors flex items-center justify-center gap-1 font-sans ${
-                  graphData
-                    ? 'border-[#2ca02c] bg-white text-[#2ca02c] hover:bg-emerald-50 cursor-pointer shadow-sm'
-                    : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                }`}
-              >
-                <Save className={`w-3.5 h-3.5 ${graphData ? 'text-[#2ca02c]' : 'text-slate-400'}`} />
-                Guardar Topología
-              </button>
+              <div className="relative group w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveTopologyModal(true)}
+                  disabled={!graphData || isDefaultTopology}
+                  className={`w-full py-1.5 px-2 rounded border transition-colors flex items-center justify-center gap-1 font-sans ${
+                    graphData && !isDefaultTopology
+                      ? 'border-[#2ca02c] bg-white text-[#2ca02c] hover:bg-emerald-50 cursor-pointer shadow-sm'
+                      : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Save className={`w-3.5 h-3.5 ${graphData && !isDefaultTopology ? 'text-[#2ca02c]' : 'text-slate-400'}`} />
+                  Guardar Topología
+                </button>
+                {graphData && isDefaultTopology && (
+                  <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-48 text-center pointer-events-none">
+                    Esta es la topología por defecto. Genera una nueva topología para poder guardarla.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -598,20 +589,59 @@ export default function ParameterPanel() {
       {step === 2 && (
         <div className="flex flex-col gap-3 font-sans text-xs">
           {/* Algoritmo de Enrutamiento */}
-          <div className="flex justify-between items-center gap-3 pb-2 border-b border-slate-100">
-            <span className="text-slate-700 font-bold font-mono">Algoritmo:</span>
-            <select
-              value={routingMethod}
-              onChange={(e) => setRoutingMethod(e.target.value as any)}
-              className="w-48 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
-            >
-              <option value="MO">Minimal Overlap (MO)</option>
-              <option value="SP">Shortest Path (SP)</option>
-              <option value="MO_ACO">MO + ACO</option>
-              <option value="QLearning">Q-Learning</option>
-              <option value="SARSA">SARSA</option>
-            </select>
-          </div>
+          {isCompareMode ? (
+            <div className="flex flex-col gap-2.5 pb-2 border-b border-slate-100">
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-slate-700 font-bold font-mono">Algoritmo 1:</span>
+                <select
+                  value={compareMethodsSelected.methodA}
+                  onChange={(e) => setCompareMethodsSelected({
+                    ...compareMethodsSelected,
+                    methodA: e.target.value
+                  })}
+                  className="w-44 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
+                >
+                  <option value="SP" disabled={compareMethodsSelected.methodB === 'SP'}>Shortest Path (SP)</option>
+                  <option value="MO" disabled={compareMethodsSelected.methodB === 'MO'}>Minimal Overlap (MO)</option>
+                  <option value="MO_ACO" disabled={compareMethodsSelected.methodB === 'MO_ACO'}>MO + ACO</option>
+                  <option value="QLearning" disabled={compareMethodsSelected.methodB === 'QLearning'}>Q-Learning</option>
+                  <option value="SARSA" disabled={compareMethodsSelected.methodB === 'SARSA'}>SARSA</option>
+                </select>
+              </div>
+              <div className="flex justify-between items-center gap-3">
+                <span className="text-slate-700 font-bold font-mono">Algoritmo 2:</span>
+                <select
+                  value={compareMethodsSelected.methodB}
+                  onChange={(e) => setCompareMethodsSelected({
+                    ...compareMethodsSelected,
+                    methodB: e.target.value
+                  })}
+                  className="w-44 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
+                >
+                  <option value="MO" disabled={compareMethodsSelected.methodA === 'MO'}>Minimal Overlap (MO)</option>
+                  <option value="SP" disabled={compareMethodsSelected.methodA === 'SP'}>Shortest Path (SP)</option>
+                  <option value="MO_ACO" disabled={compareMethodsSelected.methodA === 'MO_ACO'}>MO + ACO</option>
+                  <option value="QLearning" disabled={compareMethodsSelected.methodA === 'QLearning'}>Q-Learning</option>
+                  <option value="SARSA" disabled={compareMethodsSelected.methodA === 'SARSA'}>SARSA</option>
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center gap-3 pb-2 border-b border-slate-100">
+              <span className="text-slate-700 font-bold font-mono">Algoritmo:</span>
+              <select
+                value={routingMethod}
+                onChange={(e) => setRoutingMethod(e.target.value as any)}
+                className="w-48 bg-white border border-slate-300 text-[#0056b3] text-xs rounded p-1 font-bold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono"
+              >
+                <option value="MO">Minimal Overlap (MO)</option>
+                <option value="SP">Shortest Path (SP)</option>
+                <option value="MO_ACO">MO + ACO</option>
+                <option value="QLearning">Q-Learning</option>
+                <option value="SARSA">SARSA</option>
+              </select>
+            </div>
+          )}
 
           {/* Editar valores por defecto checkbox con tooltip + BOTÓN GUARDAR a la derecha */}
           <div className="flex justify-between items-center pb-1">
@@ -706,15 +736,42 @@ export default function ParameterPanel() {
             </button>
           </div>
 
+          {isCompareMode && (
+            <div className="flex border border-slate-200 rounded overflow-hidden text-[9px] font-sans font-bold bg-slate-50 mb-1">
+              <button
+                type="button"
+                onClick={() => setActiveParamConfigTab('A')}
+                className={`flex-1 py-1 text-center transition-all ${
+                  activeParamConfigTab === 'A' 
+                    ? 'bg-[#0056b3] text-white shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-105'
+                }`}
+              >
+                Parámetros: Algoritmo 1 ({compareMethodsSelected.methodA})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveParamConfigTab('B')}
+                className={`flex-1 py-1 text-center transition-all border-l border-slate-200 ${
+                  activeParamConfigTab === 'B' 
+                    ? 'bg-[#0056b3] text-white shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-105'
+                }`}
+              >
+                Parámetros: Algoritmo 2 ({compareMethodsSelected.methodB})
+              </button>
+            </div>
+          )}
+
           {/* Parámetros Específicos */}
           <div className="bg-slate-50 border border-slate-200 rounded p-3 flex flex-col gap-2.5">
-            {routingMethod === 'SP' && (
+            {currentMethodToConfigure === 'SP' && (
               <p className="text-[10px] text-slate-500 italic leading-normal font-sans">
                 El algoritmo Shortest Path (SP) no tiene parámetros de enrutamiento adicionales personalizables. Calcula la ruta más corta (Dijkstra) individualmente para cada flujo.
               </p>
             )}
 
-            {routingMethod === 'MO' && (
+            {currentMethodToConfigure === 'MO' && (
               <div className="flex flex-col gap-2 font-mono text-[11px]">
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-700 font-semibold flex items-center gap-1 select-none font-sans">
@@ -742,7 +799,7 @@ export default function ParameterPanel() {
               </div>
             )}
 
-            {routingMethod === 'MO_ACO' && (
+            {currentMethodToConfigure === 'MO_ACO' && (
               <div className="flex flex-col gap-2 font-mono text-[10px]">
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-700 font-semibold flex items-center gap-1 select-none font-sans">
@@ -964,7 +1021,7 @@ export default function ParameterPanel() {
               </div>
             )}
 
-            {routingMethod === 'QLearning' && (
+            {currentMethodToConfigure === 'QLearning' && (
               <div className="flex flex-col gap-2 font-mono text-[10px]">
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-700 font-sans flex items-center gap-1 select-none">
@@ -1087,7 +1144,7 @@ export default function ParameterPanel() {
               </div>
             )}
 
-            {routingMethod === 'SARSA' && (
+            {currentMethodToConfigure === 'SARSA' && (
               <div className="flex flex-col gap-2 font-mono text-[10px]">
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-700 font-sans flex items-center gap-1 select-none">
@@ -1300,66 +1357,7 @@ export default function ParameterPanel() {
         </div>
       )}
 
-      {/* SAVE TOPOLOGY MODAL */}
-      {showSaveModal && (
-        <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-300 max-w-sm w-full rounded shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 relative font-sans">
-            {/* Header strip */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#2ca02c]" />
-            
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Save className="w-4 h-4 text-[#2ca02c]" />
-                Guardar Topología Activa
-              </h4>
-              <button 
-                onClick={() => setShowSaveModal(false)}
-                className="text-xs text-slate-400 hover:text-slate-650 font-bold"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <div className="p-5 text-xs text-slate-600 flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-slate-700">Nombre de la topología:</label>
-                <input
-                  type="text"
-                  maxLength={30}
-                  placeholder="Ej: Red de sensores densa"
-                  value={topologyNameInput}
-                  onChange={(e) => setTopologyNameInput(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-sans font-semibold text-slate-800"
-                />
-              </div>
-              <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-mono bg-slate-50 p-2 rounded border border-slate-200">
-                <span className="font-bold text-slate-600 uppercase mb-0.5">Resumen de red:</span>
-                <span>• Nodos totales (N): {params.N}</span>
-                <span>• Densidad (λ): {params.lambda}</span>
-                <span>• Emisores (Sensores): {params.sensorsCount}</span>
-                <span>• Gateway (GW): Nodo {params.selected_gateway}</span>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowSaveModal(false)}
-                className="px-3 py-1.5 text-xs font-semibold rounded border border-slate-350 bg-white hover:bg-slate-100 text-slate-600 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveTopology}
-                className="px-3 py-1.5 text-xs font-bold rounded bg-[#2ca02c] hover:bg-[#258525] text-white transition-colors shadow-sm cursor-pointer"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

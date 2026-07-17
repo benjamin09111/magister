@@ -23,7 +23,11 @@ const getSensorColorClass = (sensorId: string, isDimmed: boolean) => {
   return isDimmed ? `${baseColor} opacity-20` : baseColor;
 };
 
-export default function TSCHScheduleGrid() {
+interface TSCHScheduleGridProps {
+  forceMethodView?: 'A' | 'B';
+}
+
+export default function TSCHScheduleGrid({ forceMethodView }: TSCHScheduleGridProps = {}) {
   const { 
     activeResult: storeActiveResult, 
     params, 
@@ -39,12 +43,13 @@ export default function TSCHScheduleGrid() {
 
   const activeResult = useMemo(() => {
     if (isCompareMode && compareResultsPayload) {
-      return selectedCompareMethodView === 'A' 
+      const view = forceMethodView || selectedCompareMethodView;
+      return view === 'A' 
         ? compareResultsPayload.method_a 
         : compareResultsPayload.method_b;
     }
     return storeActiveResult;
-  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, storeActiveResult]);
+  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, forceMethodView, storeActiveResult]);
 
   const gridData = useMemo(() => {
     if (!activeResult || !activeResult.tschGrid) return null;
@@ -82,7 +87,7 @@ export default function TSCHScheduleGrid() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isCompareMode && compareResultsPayload && (
+          {isCompareMode && compareResultsPayload && !forceMethodView && (
             <div className="flex bg-slate-100 border border-slate-300 rounded p-0.5 text-[10px] font-semibold">
               <button
                 onClick={() => setSelectedCompareMethodView('A')}

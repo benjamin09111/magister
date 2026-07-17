@@ -57,6 +57,8 @@ interface SimStore {
   setIsSelectingGateway: (val: boolean) => void;
   importedTopologyName: string | null;
   setImportedTopologyName: (name: string | null) => void;
+  showSaveTopologyModal: boolean;
+  setShowSaveTopologyModal: (val: boolean) => void;
 }
 
 const defaultParams: SimParameters = {
@@ -168,4 +170,6 @@ export const useSimStore = create<SimStore>((set) => ({
   setIsSelectingGateway: (isSelectingGateway) => set({ isSelectingGateway }),
   importedTopologyName: null,
   setImportedTopologyName: (importedTopologyName) => set({ importedTopologyName }),
+  showSaveTopologyModal: false,
+  setShowSaveTopologyModal: (showSaveTopologyModal) => set({ showSaveTopologyModal }),
 }));

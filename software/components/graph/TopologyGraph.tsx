@@ -16,9 +16,10 @@ if (typeof window !== 'undefined') {
 
 interface TopologyGraphProps {
   onNodeSelect?: (nodeId: string) => void;
+  forceMethodView?: 'A' | 'B';
 }
 
-export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
+export default function TopologyGraph({ onNodeSelect, forceMethodView }: TopologyGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const layoutRef = useRef<any>(null);
@@ -41,12 +42,13 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
 
   const activeResult = React.useMemo(() => {
     if (isCompareMode && compareResultsPayload) {
-      return selectedCompareMethodView === 'A' 
+      const view = forceMethodView || selectedCompareMethodView;
+      return view === 'A' 
         ? compareResultsPayload.method_a 
         : compareResultsPayload.method_b;
     }
     return storeActiveResult;
-  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, storeActiveResult]);
+  }, [isCompareMode, compareResultsPayload, selectedCompareMethodView, forceMethodView, storeActiveResult]);
 
   const stateRef = useRef({ params, isSelectingGateway, graphData, selectedSensor, onNodeSelect, activeResult });
   useEffect(() => {
@@ -513,7 +515,7 @@ export default function TopologyGraph({ onNodeSelect }: TopologyGraphProps) {
   }, [selectedSensor, activeResult, graphData, showAllConflicts]);
 
   return (
-    <div className={`relative w-full ${activeResult ? 'h-[400px]' : (isCompareMode ? 'h-[460px]' : 'h-[545px]')} border border-slate-300 rounded overflow-hidden shadow-sm`}>
+    <div className={`relative w-full flex-1 h-full ${activeResult ? 'min-h-[400px]' : (isCompareMode ? 'min-h-[460px]' : 'min-h-[545px]')} border border-slate-300 rounded overflow-hidden shadow-sm`}>
       <div ref={containerRef} className="cytoscape-container absolute inset-0" />
 
       {/* Legend */}
