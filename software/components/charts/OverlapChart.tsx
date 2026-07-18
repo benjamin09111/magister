@@ -9,29 +9,46 @@ export default function OverlapChart() {
 
   if (!activeResult) return null;
 
-  const data = [
-    {
-      name: 'Colisiones (Solapamientos)',
-      'Línea Base (SP)': activeResult.baseline.totalOverlaps,
-      'Método Optimizado': activeResult.totalOverlaps,
-    },
-    {
-      name: 'Salto Promedio (Hops)',
-      'Línea Base (SP)': parseFloat(activeResult.baseline.averageHops.toFixed(2)),
-      'Método Optimizado': parseFloat(activeResult.averageHops.toFixed(2)),
-    }
-  ];
+  const isSP = routingMethod === 'SP';
+
+  const data = isSP
+    ? [
+        {
+          name: 'Colisiones (Solapamientos)',
+          'Valor': activeResult.totalOverlaps,
+        },
+        {
+          name: 'Salto Promedio (Hops)',
+          'Valor': parseFloat(activeResult.averageHops.toFixed(2)),
+        }
+      ]
+    : [
+        {
+          name: 'Colisiones (Solapamientos)',
+          'Línea Base (SP)': activeResult.baseline.totalOverlaps,
+          'Método Optimizado': activeResult.totalOverlaps,
+        },
+        {
+          name: 'Salto Promedio (Hops)',
+          'Línea Base (SP)': parseFloat(activeResult.baseline.averageHops.toFixed(2)),
+          'Método Optimizado': parseFloat(activeResult.averageHops.toFixed(2)),
+        }
+      ];
+
+  const title = isSP
+    ? `Métricas de Enrutamiento (${routingMethod})`
+    : `Comparativa de Enrutamiento (${routingMethod} vs SP)`;
 
   return (
     <div className="bg-white border border-slate-350 rounded p-5 shadow-sm">
       <h3 className="text-sm font-bold text-slate-700 mb-3">
-        Comparativa de Enrutamiento ({routingMethod} vs SP)
+        {title}
       </h3>
       
       <div className="h-[200px] w-full font-mono">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={data}
+            data={data as any}
             margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -59,37 +76,68 @@ export default function OverlapChart() {
             <Legend 
               wrapperStyle={{ fontSize: 10, paddingTop: 10, fontFamily: 'sans-serif' }}
             />
-            {/* Red (#d62728) for literature baseline (SP) */}
-            <Bar 
-              dataKey="Línea Base (SP)" 
-              fill="#d62728" 
-              radius={[2, 2, 0, 0]} 
-            />
-            {/* Green (#2ca02c) for optimized method (MO/MO-ACO) */}
-            <Bar 
-              dataKey="Método Optimizado" 
-              fill="#2ca02c" 
-              radius={[2, 2, 0, 0]} 
-            />
+            {isSP ? (
+              <Bar 
+                dataKey="Valor" 
+                name="Shortest Path (SP)"
+                fill="#d62728" 
+                radius={[2, 2, 0, 0]} 
+              />
+            ) : (
+              <>
+                {/* Red (#d62728) for literature baseline (SP) */}
+                <Bar 
+                  dataKey="Línea Base (SP)" 
+                  fill="#d62728" 
+                  radius={[2, 2, 0, 0]} 
+                />
+                {/* Green (#2ca02c) for optimized method (MO/MO-ACO) */}
+                <Bar 
+                  dataKey="Método Optimizado" 
+                  name={routingMethod === 'MO' ? 'Minimal Overlap (MO)' : routingMethod}
+                  fill="#2ca02c" 
+                  radius={[2, 2, 0, 0]} 
+                />
+              </>
+            )}
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       <div className="mt-3 flex items-center justify-between text-[11px] text-slate-600 border-t border-slate-200 pt-2.5">
-        <div>
-          Reducción de solapes:{' '}
-          <span className="text-emerald-700 font-bold">
-            {activeResult.baseline.totalOverlaps > 0
-              ? `${Math.round(((activeResult.baseline.totalOverlaps - activeResult.totalOverlaps) / activeResult.baseline.totalOverlaps) * 100)}%`
-              : '0%'}
-          </span>
-        </div>
-        <div>
-          Penalización de saltos (hops):{' '}
-          <span className={activeResult.averageHops > activeResult.baseline.averageHops ? 'text-red-650 font-bold' : 'text-slate-550'}>
-            {(activeResult.averageHops - activeResult.baseline.averageHops).toFixed(2)} hops
-          </span>
-        </div>
+        {isSP ? (
+          <>
+            <div>
+              Solapamientos Totales:{' '}
+              <span className="text-red-650 font-bold">
+                {activeResult.totalOverlaps}
+              </span>
+            </div>
+            <div>
+              Promedio de Saltos (hops):{' '}
+              <span className="text-slate-700 font-bold">
+                {activeResult.averageHops.toFixed(2)} hops
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              Reducción de solapes:{' '}
+              <span className="text-emerald-700 font-bold">
+                {activeResult.baseline.totalOverlaps > 0
+                  ? `${Math.round(((activeResult.baseline.totalOverlaps - activeResult.totalOverlaps) / activeResult.baseline.totalOverlaps) * 100)}%`
+                  : '0%'}
+              </span>
+            </div>
+            <div>
+              Penalización de saltos (hops):{' '}
+              <span className={activeResult.averageHops > activeResult.baseline.averageHops ? 'text-red-650 font-bold' : 'text-slate-550'}>
+                {(activeResult.averageHops - activeResult.baseline.averageHops).toFixed(2)} hops
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

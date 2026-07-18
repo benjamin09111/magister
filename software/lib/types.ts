@@ -96,7 +96,7 @@ export interface SimParameters {
   eta_max: number;
   use_implicit_deadlines: boolean;
   conflict_pair_mode: 'paper_double' | 'single';
-  gateway_mode: 'auto' | 'manual';
+  gateway_mode: 'auto' | 'manual' | 'multi-gateway';
   selected_gateway: number | null;
   // Routing parameter overrides
   mo_psi?: number;

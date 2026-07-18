@@ -30,7 +30,7 @@ export default function ParameterPanel() {
     setCompareMethodsSelected
   } = useSimStore();
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [editDefaults, setEditDefaults] = useState(false);
   const [draftParams, setDraftParams] = useState<Partial<SimParameters>>({});
 
@@ -42,7 +42,7 @@ export default function ParameterPanel() {
     N: number;
     lambda: number;
     selected_gateway: number | null;
-    gateway_mode: 'auto' | 'manual';
+    gateway_mode: 'auto' | 'manual' | 'multi-gateway';
     sensorsCount: number;
   } | null>(null);
 
@@ -212,7 +212,7 @@ export default function ParameterPanel() {
           className={`flex-1 pb-2 text-center border-b-2 transition-all ${
             step === 1 
               ? 'border-[#0056b3] text-[#0056b3]' 
-              : 'border-transparent text-slate-405 hover:text-slate-650'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           1. PARÁMETROS DE RED
@@ -223,10 +223,21 @@ export default function ParameterPanel() {
           className={`flex-1 pb-2 text-center border-b-2 transition-all ${
             step === 2 
               ? 'border-[#0056b3] text-[#0056b3]' 
-              : 'border-transparent text-slate-405 hover:text-slate-650'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           2. CONFIG. ENRUTAMIENTO
+        </button>
+        <button
+          type="button"
+          onClick={() => setStep(3)}
+          className={`flex-1 pb-2 text-center border-b-2 transition-all ${
+            step === 3 
+              ? 'border-[#0056b3] text-[#0056b3]' 
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          3. GATEWAY
         </button>
       </div>
 
@@ -457,108 +468,6 @@ export default function ParameterPanel() {
             </div>
           </div>
 
-          {/* Gateway Selection Mode */}
-          <div className={`flex flex-col gap-1.5 pt-0.5 pb-1 border-b border-slate-100 ${!graphData ? 'opacity-60' : ''}`}>
-            <div className="flex justify-between items-center text-xs gap-3">
-              <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
-                Gateway:
-                <span className="relative group inline-block font-mono">
-                  <span 
-                    className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help"
-                  >
-                    ?
-                  </span>
-                  {/* Tooltip flotante al hacer hover en el icono ? */}
-                  <div className="absolute bottom-full mb-1.5 left-0 -translate-x-6 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-48 text-left">
-                    En modo <strong>Auto</strong>, el sistema selecciona automáticamente el nodo con mayor centralidad de grado (mayor número de conexiones) como Gateway. Si prefieres elegirlo tú, cambia a modo <strong>Manual</strong> para escribir su ID o seleccionarlo directamente en el grafo.
-                  </div>
-                </span>
-              </span>
-              <div className="flex bg-slate-100 border border-slate-250 rounded p-0.5 text-[10px] font-semibold font-mono">
-                <button
-                  type="button"
-                  disabled={!graphData || !!importedTopologyName}
-                  onClick={() => {
-                    updateParams({ gateway_mode: 'auto' });
-                    setIsSelectingGateway(false);
-                  }}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    params.gateway_mode === 'auto'
-                      ? 'bg-[#0056b3] text-white shadow-sm font-bold'
-                      : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
-                  }`}
-                >
-                  Auto
-                </button>
-                <button
-                  type="button"
-                  disabled={!graphData || !!importedTopologyName}
-                  onClick={() => updateParams({ gateway_mode: 'manual' })}
-                  className={`px-2 py-0.5 rounded transition-all ${
-                    params.gateway_mode === 'manual'
-                      ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
-                      : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
-                  }`}
-                >
-                  Manual
-                </button>
-              </div>
-            </div>
-
-            {!graphData && (
-              <span className="text-[9px] text-amber-600 font-bold block">
-                Genera la topología para configurar el gateway
-              </span>
-            )}
-
-            {graphData && params.gateway_mode === 'manual' && (
-              <div className="flex flex-col gap-2 pt-1 border-t border-slate-100/50">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 font-semibold">ID Nodo Gateway:</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-slate-400 font-bold font-mono">N</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={params.N - 1}
-                      disabled={!graphData || !!importedTopologyName}
-                      value={params.selected_gateway === null || isNaN(params.selected_gateway) ? '' : params.selected_gateway}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const nodeId = val === '' ? NaN : parseInt(val);
-                        
-                        // Update selected gateway
-                        updateParams({ selected_gateway: nodeId });
-                        
-                        // Also update the graph node roles locally if the ID is valid
-                        if (!isNaN(nodeId) && nodeId >= 0 && nodeId < params.N && graphData) {
-                          const nodeIdStr = nodeId.toString();
-                          const targetNode = graphData.nodes.find(n => n.id === nodeIdStr);
-                          const isTargetSensor = targetNode?.type === 'sensor';
-
-                          const updatedNodes = graphData.nodes.map(node => {
-                            let newType = node.type;
-                            if (node.id === nodeIdStr) {
-                              newType = 'gateway';
-                            } else if (node.type === 'gateway') {
-                              newType = isTargetSensor ? 'sensor' : 'normal';
-                            }
-                            return { ...node, type: newType };
-                          });
-                          setGraphData({ ...graphData, nodes: updatedNodes });
-                        }
-                      }}
-                      className={`w-14 bg-white border text-center font-bold text-xs rounded p-0.5 focus:outline-none focus:ring-1 font-mono transition-colors ${
-                        isGatewayInvalid
-                          ? 'border-red-500 text-red-650 focus:ring-red-500 focus:border-red-500'
-                          : 'border-slate-300 text-slate-800 focus:ring-[#0056b3] focus:border-[#0056b3] disabled:bg-slate-50 disabled:text-slate-400'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2 mt-1.5 pt-2.5 border-t border-slate-200">
@@ -1272,7 +1181,166 @@ export default function ParameterPanel() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="py-1.5 px-3 text-xs font-semibold rounded border border-slate-350 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+              className="py-1.5 px-3 text-xs font-semibold rounded border border-slate-350 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            >
+              Atrás
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep(3)}
+              className="py-1.5 px-3 text-xs font-semibold rounded border border-transparent bg-[#02529c] hover:bg-[#003d73] text-white transition-colors cursor-pointer"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="flex flex-col gap-3 font-sans text-xs">
+          {/* Gateway Selection Mode */}
+          <div className={`flex flex-col gap-1.5 pt-0.5 pb-1 border-b border-slate-100 ${!graphData ? 'opacity-60' : ''}`}>
+            <div className="flex justify-between items-center text-xs gap-3">
+              <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
+                Gateway:
+                <span className="relative group inline-block font-mono">
+                  <span 
+                    className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help"
+                  >
+                    ?
+                  </span>
+                  {/* Tooltip flotante al hacer hover en el icono ? */}
+                  <div className="absolute bottom-full mb-1.5 left-0 -translate-x-6 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-48 text-left">
+                    En modo <strong>Auto</strong>, el sistema selecciona automáticamente el nodo con mayor centralidad de grado como Gateway. En modo <strong>Manual</strong> escribes su ID o lo seleccionas en el grafo. En modo <strong>Multi-gateway</strong> (experimental) se preparará la topología para múltiples destinos.
+                  </div>
+                </span>
+              </span>
+              <div className="flex bg-slate-100 border border-slate-250 rounded p-0.5 text-[10px] font-semibold font-mono">
+                <button
+                  type="button"
+                  disabled={!graphData || !!importedTopologyName}
+                  onClick={() => {
+                    updateParams({ gateway_mode: 'auto' });
+                    setIsSelectingGateway(false);
+                  }}
+                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                    params.gateway_mode === 'auto'
+                      ? 'bg-[#0056b3] text-white shadow-sm font-bold'
+                      : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
+                  }`}
+                >
+                  Auto
+                </button>
+                <button
+                  type="button"
+                  disabled={!graphData || !!importedTopologyName}
+                  onClick={() => updateParams({ gateway_mode: 'manual' })}
+                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                    params.gateway_mode === 'manual'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
+                      : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
+                  }`}
+                >
+                  Manual
+                </button>
+                <button
+                  type="button"
+                  disabled={!graphData || !!importedTopologyName}
+                  onClick={() => {
+                    updateParams({ gateway_mode: 'multi-gateway' });
+                    setIsSelectingGateway(false);
+                  }}
+                  className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                    params.gateway_mode === 'multi-gateway'
+                      ? 'bg-purple-600 text-white shadow-sm font-bold'
+                      : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
+                  }`}
+                >
+                  Multi-gateway
+                </button>
+              </div>
+            </div>
+
+            {!graphData && (
+              <span className="text-[9px] text-amber-600 font-bold block">
+                Genera la topología para configurar el gateway
+              </span>
+            )}
+
+            {graphData && params.gateway_mode === 'manual' && (
+              <div className="flex flex-col gap-2 pt-1 border-t border-slate-100/50">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-700 font-semibold flex items-center gap-1">
+                    ID Nodo Gateway:
+                    <span className="relative group inline-block font-mono">
+                      <span className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-pointer font-sans"
+                            onClick={() => setIsSelectingGateway(!isSelectingGateway)}
+                      >
+                        🔍
+                      </span>
+                      <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-48 text-left">
+                        Haz clic para habilitar selección en el grafo directamente.
+                      </div>
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-400 font-bold font-mono">N</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={params.N - 1}
+                      disabled={!graphData || !!importedTopologyName}
+                      value={params.selected_gateway === null || isNaN(params.selected_gateway) ? '' : params.selected_gateway}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const nodeId = val === '' ? NaN : parseInt(val);
+                        
+                        // Update selected gateway
+                        updateParams({ selected_gateway: nodeId });
+                        
+                        // Also update the graph node roles locally if the ID is valid
+                        if (!isNaN(nodeId) && nodeId >= 0 && nodeId < params.N && graphData) {
+                          const nodeIdStr = nodeId.toString();
+                          const targetNode = graphData.nodes.find(n => n.id === nodeIdStr);
+                          const isTargetSensor = targetNode?.type === 'sensor';
+
+                          const updatedNodes = graphData.nodes.map(node => {
+                            let newType = node.type;
+                            if (node.id === nodeIdStr) {
+                              newType = 'gateway';
+                            } else if (node.type === 'gateway') {
+                              newType = isTargetSensor ? 'sensor' : 'normal';
+                            }
+                            return { ...node, type: newType };
+                          });
+                          setGraphData({ ...graphData, nodes: updatedNodes });
+                        }
+                      }}
+                      className={`w-14 bg-white border text-center font-bold text-xs rounded p-0.5 focus:outline-none focus:ring-1 font-mono transition-colors ${
+                        isGatewayInvalid
+                          ? 'border-red-500 text-red-650 focus:ring-red-500 focus:border-red-500'
+                          : 'border-slate-300 text-slate-800 focus:ring-[#0056b3] focus:border-[#0056b3] disabled:bg-slate-50 disabled:text-slate-400'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {graphData && params.gateway_mode === 'multi-gateway' && (
+              <div className="flex flex-col gap-2 pt-2 border-t border-slate-100/50">
+                <span className="text-[10px] text-purple-750 font-bold bg-purple-50 border border-purple-200 rounded p-2 block leading-normal font-sans">
+                  ⚠️ El modo <strong>Multi-gateway</strong> no está soportado en la simulación actual de MATLAB/Python. Se simulará utilizando el Gateway por defecto (centralidad de grado).
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between gap-2 mt-1.5 pt-2.5 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="py-1.5 px-3 text-xs font-semibold rounded border border-slate-350 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
             >
               Atrás
             </button>
