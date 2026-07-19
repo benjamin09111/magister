@@ -101,16 +101,35 @@ Para alinear el simulador con la terminología formal de la literatura de redes 
 
 ---
 
-## 6. Estructura de Archivos Involucrados en estas Funcionalidades
+## 6. Módulo Multi-Gateway (Particionamiento y Designación de Sinks)
+
+Para extender el simulador interactivo más allá de un único gateway fijo, se ha incorporado la funcionalidad **Multi-Gateway (MG)**. Esta extensión del simulador permite al usuario configurar múltiples sinks ($k \in \{1, 3, 5\}$) para dividir y paralelizar la demanda temporal de la red.
+
+### Algoritmos y Características Clave:
+*   **Clustering Espectral NJW ( Ng-Jordan-Weiss):** Particiona de forma automática y agnóstica a la ubicación geográfica el grafo de conectividad de la red en $k$ subgrupos.
+*   **Centralidades de Clúster:** Para cada clúster de nodos, se calcula la centralidad local (Grado, Betweenness, Closeness o Eigenvector) y se designa al nodo con mayor relevancia local como el gateway exclusivo de dicho clúster.
+*   **Adaptación de la Heurística MO-MG:** El enrutamiento Minimal Overlaps (MO) optimiza los caminos dirigidos a gateways locales correspondientes, omitiendo la penalización de solapamientos en los gateways para evitar penalizaciones artificiales en los últimos saltos convergentes.
+*   **Soporte Multicanal y de Reuso a 3 Saltos:** El cálculo de colisiones espaciales e interferencias adopta la regla física de reuso a 3 saltos, donde segmentos compartidos de longitud superior a 3 enlaces no incrementan el conflicto de canal gracias al scheduling temporal.
+
+---
+
+## 7. Estructura de Archivos Involucrados en estas Funcionalidades
 
 Los siguientes archivos del código implementan y extienden esta lógica:
 
-*   **Backend (Python/FastAPI):**
+*   **Backend y Simulación Combinatoria (MATLAB & Python):**
+    *   `mo_sp_pt2/config/config_mg.m` — Parámetros combinatorios del módulo multi-gateway ($k$, m, centralidades).
+    *   `mo_sp_pt2/topology/njw_spectral_clustering.m` — Implementación portable de agrupamiento espectral NJW con K-means autocontenido.
+    *   `mo_sp_pt2/topology/select_cluster_gateways.m` — Selección de gateways locales por centralidad de subgrafo.
+    *   `mo_sp_pt2/routing/run_minimal_overlap_routing_mg.m` — Heurística MO multi-gateway con exclusión.
+    *   `mo_sp_pt2/metrics/compute_schedulability_status_mg.m` — Test de demand-bound EDF multi-gateway normalizado.
+    *   `mo_sp_pt2/main/main_multigateway.m` — Ejecutable principal MATLAB de simulación.
+    *   `plot_multigateway_results.py` — Graficador de alta calidad en Python que genera las figuras de la tesis.
     *   `software/backend/engine/metrics.py` — Implementa la función `compute_dbf_curves` para calcular el breakdown de la DBF slot a slot de 1 a $H$.
     *   `software/backend/main.py` — Paraleliza el Monte Carlo mediante `ProcessPoolExecutor` y retorna las curvas DBF en `/simulation/run` y `/simulation/compare`.
     *   `software/backend/models/simulation.py` — Contiene los modelos Pydantic para validación de payloads.
 *   **Frontend (Next.js 14 / TypeScript):**
-    *   `software/components/charts/DemandBoundChart.tsx` — [NUEVO] Componente interactivo Recharts para graficar la DBF y zonas de sobrecarga en tiempo real.
+    *   `software/components/charts/DemandBoundChart.tsx` — Componente interactivo Recharts para graficar la DBF y zonas de sobrecarga en tiempo real.
     *   `software/lib/types.ts` — Extiende las interfaces TypeScript (`SimResult`, `DbfCurvePoint`) para tipar las curvas.
     *   `software/lib/store.ts` — Implementa el estado Zustand para sincronizar comparaciones.
     *   `software/components/config/SweepConfigPanel.tsx` — Selector desplegable de Monte Carlo con advertencias de paralelismo.
@@ -118,3 +137,4 @@ Los siguientes archivos del código implementan y extienden esta lógica:
     *   `software/components/charts/ComparisonDashboard.tsx` — Integra el análisis de DBF lado a lado para depuración en modo comparación.
     *   `software/components/tsch/TSCHScheduleGrid.tsx` — Grilla TSCH adaptada a la nomenclatura de Superframe.
     *   `software/app/page.tsx` — Integra el panel principal y las llamadas a la API REST.
+
