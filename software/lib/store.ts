@@ -74,6 +74,13 @@ const defaultParams: SimParameters = {
   conflict_pair_mode: 'paper_double',
   gateway_mode: 'auto',
   selected_gateway: null,
+  // Paper fidelity: gateway = highest betweenness centrality (paper §3.1)
+  centrality_metric: 'betweenness',
+  topology_generator: 'erdos_renyi',
+  seed: null,
+  num_gateways: 3,
+  mg_centrality_method: 'betweenness',
+  gateways: null,
   // Default routing parameter overrides
   mo_psi: 0.0265,
   aco_alpha: 1.0,
@@ -97,12 +104,16 @@ const defaultParams: SimParameters = {
 };
 
 const defaultSweepParams: SweepParameters = {
-  sweep_param: 'N',
-  sweep_start: 10,
-  sweep_end: 30,
-  sweep_step: 5,
+  sweep_param: 'n',
+  sweep_start: 2,
+  sweep_end: 22,
+  sweep_step: 2,
   replicas: 10,
   methods: ['SP', 'MO'],
+  centrality_metric: 'betweenness',
+  topology_generator: 'erdos_renyi',
+  seed: null,
+  save_dataset: true,
 };
 
 export const useSimStore = create<SimStore>((set) => ({

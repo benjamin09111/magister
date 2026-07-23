@@ -5,7 +5,7 @@ import { useSimStore } from '@/lib/store';
 import { fetchApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { SimParameters } from '@/lib/types';
-import { FolderOpen, Save, Trash2, X, AlertTriangle, FileText } from 'lucide-react';
+import { FolderOpen, Save, Trash2, X, AlertTriangle, FileText, Shuffle } from 'lucide-react';
 
 export default function ParameterPanel() {
   const { 
@@ -166,11 +166,16 @@ export default function ParameterPanel() {
     try {
       const res = await fetchApi('/topology/generate', {
         method: 'POST',
-        body: JSON.stringify({ 
-          N: params.N, 
+        body: JSON.stringify({
+          N: params.N,
           lambda_val: params.lambda,
           gateway_mode: params.gateway_mode,
-          selected_gateway: params.gateway_mode === 'manual' ? params.selected_gateway : null
+          selected_gateway: params.gateway_mode === 'manual' ? params.selected_gateway : null,
+          centrality_metric: params.centrality_metric,
+          topology_generator: params.topology_generator,
+          seed: params.seed,
+          num_gateways: params.num_gateways,
+          mg_centrality_method: params.mg_centrality_method
         }),
       });
 
@@ -182,10 +187,17 @@ export default function ParameterPanel() {
         edges: cytoscapeEdges
       });
 
-      // Update actual sensors count and gateway returned by the backend
+      // Update actual sensors count, gateway, and reproducibility seed
+      // returned by the backend (if the user didn't pin one, the server
+      // drew a fresh one — we store it so this exact topology can be
+      // regenerated later, per SoftwareX reproducibility requirements).
+      // In multi-gateway mode, "gateways" locks in the exact partition so
+      // the simulation reuses the same clusters/gateways shown in the graph.
       updateParams({
         selected_gateway: res.gateway,
-        sensorsCount: res.sensors.length
+        sensorsCount: res.sensors.length,
+        seed: res.seed,
+        gateways: params.gateway_mode === 'multi-gateway' ? res.gateways : null
       });
 
       setLastGenerated({
@@ -414,7 +426,7 @@ export default function ParameterPanel() {
                   ?
                 </span>
                 <div className="absolute bottom-full mb-1.5 left-0 -translate-x-4 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-52 text-left">
-                  Ciclo completo en slots del planificador de celdas TSCH. Valores mayores aumentan la capacidad del planificador para ubicar flujos pero pueden retrasar la latencia.
+                  Cota superior orientativa. El hiperperíodo REAL usado para schedulability se recalcula siempre como H = lcm(T) de los períodos efectivamente generados (paper §6.1), y se muestra en los resultados tras correr la simulación.
                 </div>
               </span>
             </span>
@@ -468,6 +480,92 @@ export default function ParameterPanel() {
             </div>
           </div>
 
+          {/* Generador de Topología */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
+              Generador Aleatorio:
+              <span className="relative group inline-block font-mono">
+                <span className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help">
+                  ?
+                </span>
+                <div className="absolute bottom-full mb-1.5 left-0 -translate-x-4 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-56 text-left">
+                  Familia de generador estocástico de NetworkX (Hagberg, Schult &amp; Swart, 2008). Erdős–Rényi (G(N,p)) replica en distribución la matriz sprand/spones de la referencia MATLAB. Watts–Strogatz y Barabási–Albert permiten explorar topologías small-world / scale-free; Geométrico Aleatorio simula despliegues espaciales típicos de WSAN.
+                </div>
+              </span>
+            </span>
+            <select
+              value={params.topology_generator}
+              disabled={!!importedTopologyName}
+              onChange={(e) => updateParams({ topology_generator: e.target.value as SimParameters['topology_generator'] })}
+              className="w-40 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="erdos_renyi">Erdős–Rényi (≈ sprand)</option>
+              <option value="watts_strogatz">Watts–Strogatz</option>
+              <option value="barabasi_albert">Barabási–Albert</option>
+              <option value="random_geometric">Geométrico Aleatorio</option>
+            </select>
+          </div>
+
+          {/* Métrica de Centralidad del Gateway */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
+              Gateway por:
+              <span className="relative group inline-block font-mono">
+                <span className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help">
+                  ?
+                </span>
+                <div className="absolute bottom-full mb-1.5 left-0 -translate-x-4 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-56 text-left">
+                  Métrica de centralidad usada para elegir el gateway en modo automático. El paper (§3.1) define el gateway como el nodo de mayor betweenness centrality; grado y closeness quedan disponibles para análisis de sensibilidad (nota 3 del paper).
+                </div>
+              </span>
+            </span>
+            <select
+              value={params.centrality_metric}
+              disabled={!!importedTopologyName || params.gateway_mode !== 'auto'}
+              onChange={(e) => updateParams({ centrality_metric: e.target.value as SimParameters['centrality_metric'] })}
+              className="w-40 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-mono disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="betweenness">Betweenness (fiel al paper)</option>
+              <option value="degree">Grado (sensibilidad)</option>
+              <option value="closeness">Closeness (sensibilidad)</option>
+            </select>
+          </div>
+
+          {/* Seed de reproducibilidad */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-slate-700 font-semibold flex items-center gap-1 select-none">
+              Semilla (seed):
+              <span className="relative group inline-block font-mono">
+                <span className="w-3.5 h-3.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-500 rounded-full flex items-center justify-center text-[9px] font-bold cursor-help">
+                  ?
+                </span>
+                <div className="absolute bottom-full mb-1.5 left-0 -translate-x-4 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-56 text-left">
+                  Fija la aleatoriedad de topología, sensores y períodos de flujo para reproducibilidad exacta (requisito de publicación en SoftwareX). Vacío = el servidor genera una semilla nueva y la reporta aquí tras ejecutar.
+                </div>
+              </span>
+            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                placeholder="auto"
+                value={params.seed ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateParams({ seed: val === '' ? null : parseInt(val) });
+                }}
+                className="w-24 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 text-center font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
+                title="Semilla de reproducibilidad (vacío = aleatoria)"
+              />
+              <button
+                type="button"
+                onClick={() => updateParams({ seed: null })}
+                title="Limpiar semilla (usar una nueva aleatoria en la próxima ejecución)"
+                className="p-1 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-600"
+              >
+                <Shuffle size={12} />
+              </button>
+            </div>
+          </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-2 mt-1.5 pt-2.5 border-t border-slate-200">
@@ -545,9 +643,15 @@ export default function ParameterPanel() {
               >
                 <option value="MO">Minimal Overlap (MO)</option>
                 <option value="SP">Shortest Path (SP)</option>
-                <option value="MO_ACO">MO + ACO</option>
-                <option value="QLearning">Q-Learning</option>
-                <option value="SARSA">SARSA</option>
+                <option value="MO_ACO" disabled={params.gateway_mode === 'multi-gateway'}>
+                  MO + ACO{params.gateway_mode === 'multi-gateway' ? ' (no soportado en Multi-gateway)' : ''}
+                </option>
+                <option value="QLearning" disabled={params.gateway_mode === 'multi-gateway'}>
+                  Q-Learning{params.gateway_mode === 'multi-gateway' ? ' (no soportado en Multi-gateway)' : ''}
+                </option>
+                <option value="SARSA" disabled={params.gateway_mode === 'multi-gateway'}>
+                  SARSA{params.gateway_mode === 'multi-gateway' ? ' (no soportado en Multi-gateway)' : ''}
+                </option>
               </select>
             </div>
           )}
@@ -1211,7 +1315,7 @@ export default function ParameterPanel() {
                   </span>
                   {/* Tooltip flotante al hacer hover en el icono ? */}
                   <div className="absolute bottom-full mb-1.5 left-0 -translate-x-6 hidden group-hover:block bg-slate-800 text-white text-[9px] p-2.5 rounded border border-slate-700 shadow-xl z-30 leading-normal font-sans w-48 text-left">
-                    En modo <strong>Auto</strong>, el sistema selecciona automáticamente el nodo con mayor centralidad de grado como Gateway. En modo <strong>Manual</strong> escribes su ID o lo seleccionas en el grafo. En modo <strong>Multi-gateway</strong> (experimental) se preparará la topología para múltiples destinos.
+                    En modo <strong>Auto</strong>, el sistema selecciona el nodo de mayor centralidad (betweenness por defecto, fiel al paper) como Gateway. En modo <strong>Manual</strong> escribes su ID o lo seleccionas en el grafo. En modo <strong>Multi-gateway</strong> se particiona la red en k clústeres (clustering espectral NJW) con un gateway local por clúster.
                   </div>
                 </span>
               </span>
@@ -1329,9 +1433,42 @@ export default function ParameterPanel() {
 
             {graphData && params.gateway_mode === 'multi-gateway' && (
               <div className="flex flex-col gap-2 pt-2 border-t border-slate-100/50">
-                <span className="text-[10px] text-purple-750 font-bold bg-purple-50 border border-purple-200 rounded p-2 block leading-normal font-sans">
-                  ⚠️ El modo <strong>Multi-gateway</strong> no está soportado en la simulación actual de MATLAB/Python. Se simulará utilizando el Gateway por defecto (centralidad de grado).
+                <span className="text-[9px] text-purple-750 bg-purple-50 border border-purple-200 rounded p-2 block leading-normal font-sans">
+                  Particiona la red con clustering espectral NJW en <strong>k</strong> clústeres y designa un gateway local por clúster (port de mo_sp_pt2). Solo <strong>SP</strong> y <strong>MO</strong> están validados contra la referencia MATLAB para multi-gateway; ACO/Q-Learning/SARSA quedan deshabilitados en este modo.
                 </span>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-700 font-semibold">Número de Gateways (k):</span>
+                  <select
+                    value={params.num_gateways}
+                    onChange={(e) => updateParams({ num_gateways: parseInt(e.target.value) })}
+                    className="w-24 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 font-mono"
+                  >
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-700 font-semibold">Centralidad Local:</span>
+                  <select
+                    value={params.mg_centrality_method}
+                    onChange={(e) => updateParams({ mg_centrality_method: e.target.value as SimParameters['mg_centrality_method'] })}
+                    className="w-32 bg-white border border-slate-300 text-slate-800 text-xs rounded p-1 font-semibold focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 font-mono"
+                  >
+                    <option value="betweenness">Betweenness</option>
+                    <option value="degree">Grado</option>
+                    <option value="closeness">Closeness</option>
+                    <option value="eigenvector">Eigenvector</option>
+                  </select>
+                </div>
+
+                {routingMethod !== 'SP' && routingMethod !== 'MO' && (
+                  <span className="text-[9px] text-amber-700 font-bold bg-amber-50 border border-amber-200 rounded p-1.5 block">
+                    El algoritmo "{routingMethod}" no está soportado en modo Multi-gateway. Cambia a SP o MO en el Paso 2.
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -44,6 +44,23 @@ async def init_db():
                 edges TEXT NOT NULL
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS datasets (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                sweep_param TEXT NOT NULL,
+                replicas INTEGER NOT NULL,
+                base_seed INTEGER NOT NULL,
+                centrality_metric TEXT NOT NULL,
+                topology_generator TEXT NOT NULL,
+                methods TEXT NOT NULL,
+                base_config TEXT NOT NULL,
+                sweep_values TEXT NOT NULL,
+                results TEXT NOT NULL,
+                raw_replicas TEXT NOT NULL
+            )
+        """)
         await db.commit()
 
 async def add_history_item(item: Dict[str, Any]):
@@ -193,4 +210,88 @@ async def get_all_saved_topologies() -> List[Dict[str, Any]]:
 async def delete_saved_topology(topo_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM topologies WHERE id = ?", (topo_id,))
+        await db.commit()
+
+async def add_dataset(item: Dict[str, Any]):
+    """
+    Persists a batch-sweep dataset (parameter values + averaged per-point
+    results + compact per-replica raw results), so summary plots can be
+    regenerated later WITHOUT re-running the Monte Carlo simulation.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO datasets (
+                id, name, timestamp, sweep_param, replicas, base_seed,
+                centrality_metric, topology_generator, methods, base_config,
+                sweep_values, results, raw_replicas
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item["id"],
+                item["name"],
+                item["timestamp"],
+                item["sweep_param"],
+                item["replicas"],
+                item["base_seed"],
+                item["centrality_metric"],
+                item["topology_generator"],
+                json.dumps(item["methods"]),
+                json.dumps(item["base_config"]),
+                json.dumps(item["values"]),
+                json.dumps(item["results"]),
+                json.dumps(item["raw_replicas"])
+            )
+        )
+        await db.commit()
+
+def _row_to_dataset_summary(row) -> Dict[str, Any]:
+    methods = json.loads(row["methods"])
+    values = json.loads(row["sweep_values"])
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "timestamp": row["timestamp"],
+        "sweep_param": row["sweep_param"],
+        "replicas": row["replicas"],
+        "base_seed": row["base_seed"],
+        "centrality_metric": row["centrality_metric"],
+        "topology_generator": row["topology_generator"],
+        "methods": methods,
+        "num_points": len(values)
+    }
+
+async def get_all_datasets() -> List[Dict[str, Any]]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM datasets ORDER BY timestamp DESC") as cursor:
+            rows = await cursor.fetchall()
+            return [_row_to_dataset_summary(row) for row in rows]
+
+async def get_dataset(dataset_id: str) -> Optional[Dict[str, Any]]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM datasets WHERE id = ?", (dataset_id,)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "timestamp": row["timestamp"],
+                "sweep_param": row["sweep_param"],
+                "replicas": row["replicas"],
+                "base_seed": row["base_seed"],
+                "centrality_metric": row["centrality_metric"],
+                "topology_generator": row["topology_generator"],
+                "methods": json.loads(row["methods"]),
+                "base_config": json.loads(row["base_config"]),
+                "values": json.loads(row["sweep_values"]),
+                "results": json.loads(row["results"]),
+                "raw_replicas": json.loads(row["raw_replicas"])
+            }
+
+async def delete_dataset(dataset_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM datasets WHERE id = ?", (dataset_id,))
         await db.commit()

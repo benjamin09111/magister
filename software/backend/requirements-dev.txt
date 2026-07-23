@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=7.4.0
+# scipy is only needed for software/backend/validation/*statistics*.py (Kolmogorov-Smirnov test)
+scipy>=1.10.0

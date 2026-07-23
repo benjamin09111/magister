@@ -22,6 +22,13 @@ ENV/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+
+# Runtime SQLite database (created automatically by backend/db/database.py
+# on first run; not source code, and grows with local usage/history/saved
+# topologies/datasets — should not be versioned).
+software/backend/db/history.db
+software/backend/db/test_*.db
 
 # Agent Gemini specific logs/internal storage
 brain/
@@ -30,6 +37,11 @@ brain/
 # MATLAB specific ignores
 *.asv
 .session/
+
+# Generated cross-validation artifact (produced locally by running
+# mo_sp_pt1/experiments/export_validation_case.m); see
+# software/backend/validation/README.md
+/validation/matlab_case.json
 
 # OS Files
 .DS_Store

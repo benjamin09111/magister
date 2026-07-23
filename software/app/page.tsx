@@ -19,6 +19,8 @@ import SweepConfigPanel from '@/components/config/SweepConfigPanel';
 import SweepPlots from '@/components/charts/SweepPlots';
 import ComparisonDashboard from '@/components/charts/ComparisonDashboard';
 import SavedTopologiesList from '@/components/config/SavedTopologiesList';
+import SavedDatasetsList from '@/components/config/SavedDatasetsList';
+import TechnicalInfoPanel from '@/components/info/TechnicalInfoPanel';
 
 export default function Home() {
   const { 
@@ -49,7 +51,7 @@ export default function Home() {
   } = useSimStore();
 
   const [activeTab, setActiveTab] = useState<'simulador' | 'comparacion' | 'investigacion' | 'guardados' | 'sobre_simulador'>('simulador');
-  const [savedSubTab, setSavedSubTab] = useState<'topologias' | 'simulaciones'>('topologias');
+  const [savedSubTab, setSavedSubTab] = useState<'topologias' | 'simulaciones' | 'datasets'>('topologias');
   const [methodDrawer, setMethodDrawer] = useState<string | null>(null);
   const [showNewSimModal, setShowNewSimModal] = useState(false);
   const [topologyNameInput, setTopologyNameInput] = useState('');
@@ -126,14 +128,20 @@ export default function Home() {
         try {
           const res = await fetchApi('/topology/generate', {
             method: 'POST',
-            body: JSON.stringify({ N: params.N, lambda_val: params.lambda }),
+            body: JSON.stringify({
+              N: params.N,
+              lambda_val: params.lambda,
+              centrality_metric: params.centrality_metric,
+              topology_generator: params.topology_generator,
+              seed: params.seed,
+            }),
           });
-          
+
           const cytoscapeNodes = res.nodes.map((n: any) => n.data);
           const cytoscapeEdges = res.edges.map((e: any) => e.data);
-          
+
           setGraphData({ nodes: cytoscapeNodes, edges: cytoscapeEdges });
-          updateParams({ selected_gateway: res.gateway, sensorsCount: res.sensors.length });
+          updateParams({ selected_gateway: res.gateway, sensorsCount: res.sensors.length, seed: res.seed });
         } catch (e) {
           // Silent fallback
         }
@@ -145,6 +153,11 @@ export default function Home() {
   const handleStartSimulation = async () => {
     if (!graphData || graphData.nodes.length === 0) {
       toast.error('Primero debes generar la topología de la red.');
+      return;
+    }
+
+    if (isCompareMode && params.gateway_mode === 'multi-gateway') {
+      toast.error('El modo Multi-gateway aún no está soportado en la vista de Comparación. Usa la pestaña "Simulador" (SP o MO).');
       return;
     }
 
@@ -165,6 +178,11 @@ export default function Home() {
         conflict_pair_mode: params.conflict_pair_mode,
         gateway_mode: params.gateway_mode,
         selected_gateway: params.selected_gateway,
+        centrality_metric: params.centrality_metric,
+        seed: params.seed,
+        num_gateways: params.num_gateways,
+        mg_centrality_method: params.mg_centrality_method,
+        gateways: params.gateways,
         sensors: graphData.nodes.filter(n => n.type === 'sensor').map(n => parseInt(n.id)),
         edges: graphData.edges.map(e => ({
           data: { source: e.source, target: e.target, weight: e.weight }
@@ -210,6 +228,9 @@ export default function Home() {
         setActiveResult(result.method_a);
         setSelectedCompareMethodView('A');
         setSimStatus('completed');
+        if (typeof result.seed === 'number') {
+          updateParams({ seed: result.seed });
+        }
         toast.success('Simulación comparativa completada con éxito!', { id: 'sim-toast' });
       } else {
         const payload = {
@@ -225,6 +246,12 @@ export default function Home() {
         // Update Zustand store
         setActiveResult(result);
         setSimStatus('completed');
+        // Persist the (possibly server-drawn) seed so subsequent runs on this
+        // topology reuse the same flow set (T/D/H) for fair algorithm-vs-
+        // algorithm comparisons, and so the run can be replayed exactly later.
+        if (typeof result.seed === 'number') {
+          updateParams({ seed: result.seed });
+        }
         toast.success('Simulación completada con éxito!', { id: 'sim-toast' });
 
         // Save run automatically to DB history
@@ -392,7 +419,7 @@ export default function Home() {
               }`}
             >
               <HelpCircle className="w-3.5 h-3.5" />
-              SOBRE EL SIMULADOR
+              INFORMACIÓN TÉCNICA
             </button>
           </div>
         </div>
@@ -648,85 +675,34 @@ export default function Home() {
               >
                 Simulaciones Guardadas
               </button>
+              <button
+                type="button"
+                onClick={() => setSavedSubTab('datasets')}
+                className={`pb-1 text-xs font-bold uppercase transition-all tracking-wider border-b-2 cursor-pointer ${
+                  savedSubTab === 'datasets'
+                    ? 'border-[#0056b3] text-[#0056b3]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Datasets de Investigación
+              </button>
             </div>
 
             {/* Inner view rendering */}
             <div className="mt-2 flex-1 flex flex-col">
-              {savedSubTab === 'topologias' ? (
+              {savedSubTab === 'topologias' && (
                 <SavedTopologiesList onLoadTopology={() => setActiveTab('simulador')} />
-              ) : (
-                <HistoryList />
+              )}
+              {savedSubTab === 'simulaciones' && <HistoryList />}
+              {savedSubTab === 'datasets' && (
+                <SavedDatasetsList onLoadDataset={() => setActiveTab('investigacion')} />
               )}
             </div>
           </div>
         )}
 
-        {/* Pestaña: Sobre el simulador (Ancho completo) */}
-        {activeTab === 'sobre_simulador' && (
-          <div className="lg:col-span-12 flex flex-col gap-6 bg-white border border-slate-300 rounded p-6 shadow-sm font-sans text-sm text-slate-700 leading-relaxed relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#0056b3]" />
-            <h3 className="text-base font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">
-              Sobre el Simulador y Fundamentos del Paper
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded p-4">
-                  <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-[#0056b3]">
-                    1. Deadlines Implícitos
-                  </h4>
-                  <p className="text-xs text-slate-600 mb-2">
-                    En redes inalámbricas industriales en tiempo real como 6TiSCH, se asume el modelo de <strong>plazos de entrega implícitos</strong>.
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    Esto establece que el plazo máximo de entrega de un paquete es igual a su período de generación (<span className="font-mono bg-slate-100 border border-slate-250 px-1 py-0.5 rounded font-bold">D_i = T_i</span>). En términos prácticos: un paquete generado por un sensor debe ser programado en las celdas TSCH y alcanzar el gateway antes de que el mismo nodo genere su siguiente paquete de datos. Si un flujo no cumple esta restricción, se genera congestión y pérdida de determinismo en la red.
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded p-4">
-                  <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-[#0056b3]">
-                    2. Modelamiento de Conflictos (paper_double)
-                  </h4>
-                  <p className="text-xs text-slate-600 mb-2">
-                    Para calcular la planificabilidad (schedulability), el simulador analiza pares de enlaces que no pueden transmitir en paralelo debido a interferencias de radiofrecuencia o restricciones físicas del transceptor (por ejemplo, un nodo no puede transmitir y recibir simultáneamente en el mismo slot).
-                  </p>
-                  <p className="text-xs text-slate-650">
-                    El simulador implementa de manera estricta el modo <strong>paper_double</strong>. Este modo duplica penalizaciones y considera restricciones de colisión extendidas, especialmente en el vecindario del Gateway (nodo receptor único central), donde confluyen múltiples flujos y la interferencia acumulada es crítica para el rendimiento real de la red.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded p-4">
-                  <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-amber-700">
-                    3. Metodología de Simulación
-                  </h4>
-                  <p className="text-xs text-slate-650 mb-2">
-                    Este simulador recrea fielmente el entorno IoT académico del paper base 6TiSCH multi-objetivo:
-                  </p>
-                  <ul className="list-disc pl-4 text-xs text-slate-600 flex flex-col gap-2">
-                    <li><strong>Topología Aleatoria:</strong> Se distribuyen <span className="font-bold text-slate-800">N</span> nodos y se determina la densidad por el grado promedio de conectividad (<span className="font-bold text-slate-800">λ</span>).</li>
-                    <li><strong>Gateway:</strong> Se selecciona automáticamente al nodo de mayor centralidad o de forma manual por el usuario ingresando su ID de nodo.</li>
-                    <li><strong>Hiperperíodo:</strong> Determina la longitud cíclica en slots de la grilla de celdas TSCH (<span className="font-bold text-slate-800">H</span>).</li>
-                    <li><strong>Algoritmos de Enrutamiento:</strong> Se evalúa la literatura de referencia (Shortest Path) frente al óptimo de Minimal Overlap (MO) y optimizaciones avanzadas de Colonia de Hormigas (ACO) y Aprendizaje por Refuerzo (Q-Learning y SARSA).</li>
-                  </ul>
-                </div>
-                
-                <div className="bg-[#0056b3]/5 border border-[#0056b3]/20 rounded p-4 text-xs flex gap-2">
-                  <HelpCircle className="w-4 h-4 text-[#0056b3] shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-[#0056b3] text-xs mb-1">
-                      Nota Académica
-                    </h4>
-                    <p className="text-slate-650 leading-relaxed">
-                      Mantener estos parámetros fijos y alineados con la lógica del paper base asegura que todos los gráficos comparativos de overlaps, hops, tasa de planificabilidad y curvas de demanda (DBF) sigan siendo científicamente consistentes y válidos para la defensa de magíster, facilitando la validación matemática de las simulaciones.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Pestaña: Información Técnica (Ancho completo) */}
+        {activeTab === 'sobre_simulador' && <TechnicalInfoPanel />}
       </div>
 
       {/* Lateral Info Drawer */}

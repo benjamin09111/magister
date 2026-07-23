@@ -1,0 +1,46 @@
+# CITATION.cff — machine-readable citation metadata (citation-file-format.org)
+# TODO before submission: fill in `repository-code` (GitHub URL) and, once
+# archived, `identifiers` with the Zenodo DOI. Both are required by SoftwareX's
+# code metadata table but do not exist yet (no public repository has been
+# created for this project).
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: >-
+  6TiSCH Multi-Objective Routing Simulator: an interactive Python/Next.js
+  reimplementation of EDF scheduling and minimal-overlap shortest-path
+  routing for real-time TSCH networks
+type: software
+authors:
+  - given-names: Benjamín
+    family-names: Morales
+    affiliation: Universidad Diego Portales (UDP)
+version: 0.1.0
+date-released: "2026-07-22"
+license: MIT
+keywords:
+  - TSCH
+  - 6TiSCH
+  - real-time scheduling
+  - wireless sensor-actuator networks
+  - EDF
+  - routing
+  - demand-bound function
+  - WSAN
+references:
+  - type: article
+    title: >-
+      EDF scheduling and minimal-overlap shortest-path routing for real-time
+      TSCH networks
+    authors:
+      - family-names: Gutiérrez Gaitán
+        given-names: Miguel
+      - family-names: Almeida
+        given-names: Luís
+      - family-names: Santos
+        given-names: Pedro Miguel
+      - family-names: Meumeu Yomsi
+        given-names: Patrick
+    doi: 10.4230/OASIcs.NG-RES.2021.2
+    year: 2021
+    notes: >-
+      Baseline paper this software replicates and extends (NG-RES 2021).

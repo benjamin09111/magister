@@ -54,6 +54,11 @@ export default function SweepConfigPanel() {
         sweep_step: sweepParams.sweep_step,
         replicas: sweepParams.replicas,
         methods: sweepParams.methods,
+        centrality_metric: sweepParams.centrality_metric,
+        topology_generator: sweepParams.topology_generator,
+        seed: sweepParams.seed,
+        save_dataset: sweepParams.save_dataset,
+        dataset_name: sweepParams.dataset_name,
         // Global fixed base parameters
         N: params.N,
         lambda_val: params.lambda,
@@ -97,7 +102,7 @@ export default function SweepConfigPanel() {
     updateSweepParams({ methods: updatedMethods });
   };
 
-  const handleParamSelectChange = (val: 'N' | 'lambda' | 'channels') => {
+  const handleParamSelectChange = (val: 'N' | 'lambda' | 'channels' | 'n') => {
     // Suggest safe defaults depending on chosen parameter to vary
     if (val === 'N') {
       updateSweepParams({
@@ -120,6 +125,14 @@ export default function SweepConfigPanel() {
         sweep_end: 16,
         sweep_step: 4
       });
+    } else if (val === 'n') {
+      // The paper's primary sweep axis (Figs. 2-6): n in [2, 22]
+      updateSweepParams({
+        sweep_param: val,
+        sweep_start: 2,
+        sweep_end: 22,
+        sweep_step: 2
+      });
     }
   };
 
@@ -140,7 +153,8 @@ export default function SweepConfigPanel() {
             onChange={(e) => handleParamSelectChange(e.target.value as any)}
             className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded p-2 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3] font-semibold font-mono"
           >
-            <option value="N">Flujos de red / Nodos (N)</option>
+            <option value="n">Número de Flujos (n) — eje principal del paper</option>
+            <option value="N">Nodos de Red (N)</option>
             <option value="lambda">Densidad de enlaces (Lambda)</option>
             <option value="channels">Canales TSCH (m)</option>
           </select>
@@ -231,6 +245,33 @@ export default function SweepConfigPanel() {
           </div>
         </div>
 
+        {/* Dataset persistence toggle */}
+        <div className="bg-slate-50 border border-slate-200 rounded p-2.5">
+          <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={sweepParams.save_dataset ?? true}
+              onChange={(e) => updateSweepParams({ save_dataset: e.target.checked })}
+              className="mt-0.5 accent-[#0056b3] h-3.5 w-3.5 border-slate-350 rounded cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-slate-700 block leading-tight">Guardar dataset de este barrido</span>
+              <span className="text-[10px] text-slate-500">
+                Persiste los resultados agregados en SQLite para re-graficar después sin volver a simular ("Guardados &gt; Datasets de Investigación").
+              </span>
+            </div>
+          </label>
+          {sweepParams.save_dataset && (
+            <input
+              type="text"
+              placeholder="Nombre del dataset (opcional)"
+              value={sweepParams.dataset_name || ''}
+              onChange={(e) => updateSweepParams({ dataset_name: e.target.value })}
+              className="w-full mt-2 bg-white border border-slate-300 text-slate-800 text-xs font-mono rounded p-1.5 focus:outline-none focus:ring-1 focus:ring-[#0056b3] focus:border-[#0056b3]"
+            />
+          )}
+        </div>
+
         {/* Warning card for computation time / parallel process info */}
         {sweepParams.replicas >= 100 && (
           <div className="flex gap-2 bg-[#0056b3]/10 border border-[#0056b3]/30 rounded p-2.5 text-[10px] text-slate-700 leading-normal">
@@ -250,6 +291,11 @@ export default function SweepConfigPanel() {
             {sweepParams.sweep_param !== 'N' && (
               <div className="flex justify-between border-b border-slate-200/60 pb-0.5">
                 <span>Nodos (N):</span> <span className="font-bold text-slate-800">{params.N}</span>
+              </div>
+            )}
+            {sweepParams.sweep_param !== 'n' && (
+              <div className="flex justify-between border-b border-slate-200/60 pb-0.5">
+                <span>Flujos (n):</span> <span className="font-bold text-slate-800">{params.sensorsCount}</span>
               </div>
             )}
             {sweepParams.sweep_param !== 'lambda' && (

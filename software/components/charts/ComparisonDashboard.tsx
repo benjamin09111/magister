@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { CheckCircle2, XCircle, ArrowDown, ArrowUp, Zap } from 'lucide-react';
 import DemandBoundChart from './DemandBoundChart';
+import OverlapDemandComparisonChart from './OverlapDemandComparisonChart';
 
 export default function ComparisonDashboard() {
   const { compareResultsPayload, compareMethodsSelected, simStatus, isCompareMode } = useSimStore();
@@ -251,7 +252,12 @@ export default function ComparisonDashboard() {
         </div>
       </div>
 
-      {/* Demand Bound Function Curve for currently inspected compared method */}
+      {/* Overlayed sbf/dbf comparison: both methods on the same plot */}
+      <div className="w-full mt-2">
+        <OverlapDemandComparisonChart />
+      </div>
+
+      {/* Demand Bound Function Curve (with flow-by-flow playback) for the currently inspected method */}
       <div className="w-full mt-2">
         <DemandBoundChart />
       </div>
